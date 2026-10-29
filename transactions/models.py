@@ -14,3 +14,15 @@ class Transaction(models.Model):
     type = models.CharField(max_length=7,choices=Type.choices)
 
     date = models.DateField(default=timezone.localdate)
+
+    category = models.ForeignKey(
+        "Category",
+        on_delete=models.PROTECT,
+        related_name="transactions",
+        null=True,
+        blank=True
+    )
+
+class Category(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, default="")
