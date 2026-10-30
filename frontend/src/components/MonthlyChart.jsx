@@ -7,19 +7,22 @@ import {
     YAxis,
     CartesianGrid,
     Tooltip,
-    Legend
+    Legend,
 } from "recharts";
 
-const data = [
-    { month: "Jan", receitas: 4500, despesas: 2800 },
-    { month: "Fev", receitas: 5200, despesas: 3100 },
-    { month: "Mar", receitas: 4800, despesas: 3500 },
-    { month: "Abr", receitas: 6100, despesas: 2900 },
-    { month: "Mai", receitas: 5500, despesas: 3800 },
-    { month: "Jun", receitas: 7000, despesas: 4200 },
-];
+function MonthlyChart({ data = [] }) {
+    const formatCurrency = (value) =>
+        Number(value).toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+        });
 
-function MonthlyChart() {
+    const chartData = data.map((item) => ({
+        day: String(item.day).padStart(2, "0"),
+        receitas: Number(item.income),
+        despesas: Number(item.expenses),
+    }));
+
     return (
         <div className="chart-card">
             <div className="chart-header">
@@ -28,31 +31,37 @@ function MonthlyChart() {
                         FINANCIAL PERFORMANCE
                     </span>
 
-                    <h2>Fluxo financeiro</h2>
-                    <p>Receitas e despesas ao longo dos meses</p>
+                    <h2>Movimentação mensal</h2>
+                    <p>Receitas e despesas por dia</p>
                 </div>
             </div>
 
             <div className="chart-container">
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={data}>
+                    <BarChart
+                        data={chartData}
+                        margin={{ top: 10, right: 10, left: 10, bottom: 5 }}
+                    >
                         <CartesianGrid
                             stroke="#29312c"
                             vertical={false}
                         />
 
                         <XAxis
-                            dataKey="month"
+                            dataKey="day"
                             stroke="#929b95"
                             tickLine={false}
                             axisLine={false}
+                            interval="preserveStartEnd"
                         />
 
                         <YAxis
                             stroke="#929b95"
                             tickLine={false}
                             axisLine={false}
-                            tickFormatter={(value) => `R$ ${value / 1000}k`}
+                            tickFormatter={(value) =>
+                                `R$ ${value.toLocaleString("pt-BR")}`
+                            }
                         />
 
                         <Tooltip
@@ -60,11 +69,12 @@ function MonthlyChart() {
                                 backgroundColor: "#181e1b",
                                 border: "1px solid #29312c",
                                 borderRadius: "8px",
-                                color: "#e8eae9"
+                                color: "#e8eae9",
                             }}
-                            formatter={(value) => [
-                                `R$ ${Number(value).toLocaleString("pt-BR")}`,
-                                undefined
+                            labelFormatter={(day) => `Dia ${day}`}
+                            formatter={(value, name) => [
+                                formatCurrency(value),
+                                name,
                             ]}
                         />
 

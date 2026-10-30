@@ -1,26 +1,51 @@
+
 import { Bell, Search } from "lucide-react";
+import { useLocation } from "react-router-dom";
 
 function Header() {
+    const location = useLocation();
+
+    const pageInfo = {
+        "/": {
+            overline: "FINANCE / OVERVIEW",
+            title: "Visão geral",
+            description: "Acompanhe sua vida financeira em um só lugar.",
+        },
+        "/transactions": {
+            overline: "FINANCE / TRANSACTIONS",
+            title: "Transações",
+            description: "Gerencie suas receitas e despesas.",
+        },
+        "/categories": {
+            overline: "FINANCE / CATEGORIES",
+            title: "Categorias",
+            description: "Organize e acompanhe seus gastos.",
+        },
+    };
+
+    const currentPage = pageInfo[location.pathname] || pageInfo["/"];
+
     return (
         <header className="header">
             <div>
                 <span className="header-overline">
-                    FINANCE / OVERVIEW
+                    {currentPage.overline}
                 </span>
 
                 <h1>
-                    Visão geral<span className="green-dot">.</span>
+                    {currentPage.title}
+                    <span className="green-dot">.</span>
                 </h1>
 
-                <p>Acompanhe sua vida financeira em um só lugar.</p>
+                <p>{currentPage.description}</p>
             </div>
 
             <div className="header-actions">
-                <button className="icon-button">
+                <button className="icon-button" aria-label="Pesquisar">
                     <Search size={18} />
                 </button>
 
-                <button className="icon-button">
+                <button className="icon-button" aria-label="Notificações">
                     <Bell size={18} />
                 </button>
 

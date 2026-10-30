@@ -1,8 +1,10 @@
-from django.db.models import Sum
-from transactions.models import Transaction
+from calendar import monthrange
+from decimal import Decimal
 
 from django.db.models import Sum, Q, F, Value, DecimalField
-from django.db.models.functions import TruncMonth, Coalesce
+from django.db.models.functions import TruncMonth, Coalesce, ExtractDay
+
+from transactions.models import Transaction
 
 def get_financial_summary(user, month=None, year=None):
     transactions = Transaction.objects.filter(user=user)
@@ -81,3 +83,49 @@ def get_monthly_financial_history(user, year):
     ).order_by("month")
 
     return history
+
+def get_daily_financial_movement(user, month, year):
+    transactions = Transaction.objects.filter(
+        user=user,
+        date__month=month,
+        date__year=year
+    )
+
+    daily_data = transactions.annotate(
+        day=ExtractDay("date")
+    ).values(
+        "day"
+    ).annotate(
+        income=Coalesce(
+            Sum("amount", filter=Q(type=Transaction.Type.INCOME)),
+            Value(0),
+            output_field=DecimalField(max_digits=12, decimal_places=2)
+        ),
+        expenses=Coalesce(
+            Sum("amount", filter=Q(type=Transaction.Type.EXPENSE)),
+            Value(0),
+            output_field=DecimalField(max_digits=12, decimal_places=2)
+        )
+    )
+
+    # Organiza os resultados por dia
+    daily_map = {
+        item["day"]: item
+        for item in daily_data
+    }
+
+    # Gera todos os dias do mês, inclusive os sem movimentação
+    total_days = monthrange(year, month)[1]
+
+    movement = []
+
+    for day in range(1, total_days + 1):
+        data = daily_map.get(day, {})
+
+        movement.append({
+            "day": day,
+            "income": data.get("income", Decimal("0.00")),
+            "expenses": data.get("expenses", Decimal("0.00")),
+        })
+
+    return movement

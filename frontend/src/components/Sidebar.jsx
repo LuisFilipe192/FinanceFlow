@@ -4,8 +4,10 @@ import {
     ArrowLeftRight,
     Tags,
     Settings,
-    Wallet
+    Wallet,
 } from "lucide-react";
+
+import { NavLink } from "react-router-dom";
 
 function Sidebar() {
     return (
@@ -24,20 +26,36 @@ function Sidebar() {
             <div className="sidebar-label">WORKSPACE</div>
 
             <nav className="sidebar-nav">
-                <a href="#" className="nav-item active">
+                <NavLink
+                    to="/"
+                    end
+                    className={({ isActive }) =>
+                        `nav-item ${isActive ? "active" : ""}`
+                    }
+                >
                     <LayoutDashboard size={18} />
                     <span>Visão geral</span>
-                </a>
+                </NavLink>
 
-                <a href="#" className="nav-item">
+                <NavLink
+                    to="/transactions"
+                    className={({ isActive }) =>
+                        `nav-item ${isActive ? "active" : ""}`
+                    }
+                >
                     <ArrowLeftRight size={18} />
                     <span>Transações</span>
-                </a>
+                </NavLink>
 
-                <a href="#" className="nav-item">
+                <NavLink
+                    to="/categories"
+                    className={({ isActive }) =>
+                        `nav-item ${isActive ? "active" : ""}`
+                    }
+                >
                     <Tags size={18} />
                     <span>Categorias</span>
-                </a>
+                </NavLink>
             </nav>
 
             <div className="sidebar-bottom">

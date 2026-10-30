@@ -5,22 +5,36 @@ import {
     Pie,
     Cell,
     Tooltip,
-    Legend
+    Legend,
 } from "recharts";
 
-const data = [
-    { name: "Alimentação", value: 1200, color: "#b5f56a" },
-    { name: "Transporte", value: 450, color: "#8bb8ff" },
-    { name: "Moradia", value: 1800, color: "#f17c7c" },
-    { name: "Lazer", value: 600, color: "#c084fc" },
-    { name: "Outros", value: 350, color: "#e5b567" },
+const COLORS = [
+    "#b5f56a",
+    "#8bb8ff",
+    "#f17c7c",
+    "#c084fc",
+    "#e5b567",
+    "#67d5c5",
+    "#f49ac2",
 ];
 
-function CategoryChart() {
-    const totalExpenses = data.reduce(
+function CategoryChart({ data = [] }) {
+    const chartData = data.map((category, index) => ({
+        name: category.category || "Sem categoria",
+        value: Number(category.total),
+        color: COLORS[index % COLORS.length],
+    }));
+
+    const totalExpenses = chartData.reduce(
         (total, category) => total + category.value,
         0
     );
+
+    const formatCurrency = (value) =>
+        Number(value).toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+        });
 
     return (
         <div className="category-chart-card">
@@ -35,54 +49,63 @@ function CategoryChart() {
             </div>
 
             <div className="category-chart-container">
-                <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                        <Pie
-                            data={data}
-                            dataKey="value"
-                            nameKey="name"
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={75}
-                            outerRadius={110}
-                            paddingAngle={4}
-                            stroke="none"
-                        >
-                            {data.map((category) => (
-                                <Cell
-                                    key={category.name}
-                                    fill={category.color}
+                {chartData.length > 0 ? (
+                    <>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={chartData}
+                                    dataKey="value"
+                                    nameKey="name"
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={75}
+                                    outerRadius={110}
+                                    paddingAngle={4}
+                                    stroke="none"
+                                >
+                                    {chartData.map((category) => (
+                                        <Cell
+                                            key={category.name}
+                                            fill={category.color}
+                                        />
+                                    ))}
+                                </Pie>
+
+                                <Tooltip
+                                    formatter={(value) => [
+                                        formatCurrency(value),
+                                        "Total",
+                                    ]}
+                                    contentStyle={{
+                                        backgroundColor: "#181e1b",
+                                        border: "1px solid #29312c",
+                                        borderRadius: "8px",
+                                        color: "#e8eae9",
+                                    }}
                                 />
-                            ))}
-                        </Pie>
 
-                        <Tooltip
-                            formatter={(value) => [
-                                `R$ ${Number(value).toLocaleString("pt-BR")}`,
-                                "Total"
-                            ]}
-                            contentStyle={{
-                                backgroundColor: "#181e1b",
-                                border: "1px solid #29312c",
-                                borderRadius: "8px",
-                                color: "#e8eae9"
-                            }}
-                        />
+                                <Legend
+                                    verticalAlign="bottom"
+                                    iconType="circle"
+                                />
+                            </PieChart>
+                        </ResponsiveContainer>
 
-                        <Legend
-                            verticalAlign="bottom"
-                            iconType="circle"
-                        />
-                    </PieChart>
-                </ResponsiveContainer>
+                        <div className="category-chart-center">
+                            <span>Total gasto</span>
 
-                <div className="category-chart-center">
-                    <span>Total gasto</span>
-
-                    <strong>
-                        R$ {totalExpenses.toLocaleString("pt-BR")}
-                    </strong>
-                </div>
+                            <strong>
+                                {formatCurrency(totalExpenses)}
+                            </strong>
+                        </div>
+                    </>
+                ) : (
+                    <div className="category-chart-center">
+                        <span>Sem despesas neste período</span>
+                        <strong>{formatCurrency(0)}</strong>
+                    </div>
+                )}
             </div>
         </div>
     );
