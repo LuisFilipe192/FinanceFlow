@@ -1,0 +1,135 @@
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinanceFlow | Dashboard</title>
+
+    <link rel="stylesheet" href="{% static 'transactions/css/dashboard.css' %}">
+</head>
+<body>
+
+<div class="dashboard-container">
+
+    <aside class="sidebar">
+        <div class="logo">FinanceFlow.</div>
+
+        <nav>
+            <a href="/" class="active">Dashboard</a>
+            <a href="/admin/transactions/transaction/">Transações</a>
+            <a href="/admin/transactions/category/">Categorias</a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+
+        <header class="header">
+            <h1>Meu Dashboard</h1>
+            <p>Bem-vindo ao seu controle financeiro.</p>
+        </header>
+
+        <section class="summary-cards">
+
+            <div class="card">
+                <h3>Receitas</h3>
+                <p class="income">
+                    R$ {{ summary.income|floatformat:2 }}
+                </p>
+            </div>
+
+            <div class="card">
+                <h3>Despesas</h3>
+                <p class="expense">
+                    R$ {{ summary.expenses|floatformat:2 }}
+                </p>
+            </div>
+
+            <div class="card">
+                <h3>Saldo atual</h3>
+                <p class="balance">
+                    R$ {{ summary.balance|floatformat:2 }}
+                </p>
+            </div>
+
+        </section>
+
+        <section class="content-section">
+            <h2>Despesas por categoria</h2>
+
+            {% for expense in expenses_by_category %}
+                <div class="category-item">
+                    {{ expense.category__name|default:"Sem categoria" }}
+                    — R$ {{ expense.total|floatformat:2 }}
+                </div>
+            {% empty %}
+                <p>Nenhuma despesa cadastrada.</p>
+            {% endfor %}
+        </section>
+
+        <section class="content-section">
+            <h2>Histórico financeiro</h2>
+
+            {% for item in financial_history %}
+                <div class="history-item">
+                    {{ item.month|date:"m/Y" }} |
+                    Receitas: R$ {{ item.income|floatformat:2 }} |
+                    Despesas: R$ {{ item.expenses|floatformat:2 }} |
+                    Saldo: R$ {{ item.balance|floatformat:2 }}
+                </div>
+            {% empty %}
+                <p>Nenhum histórico disponível.</p>
+            {% endfor %}
+        </section>
+        <section class="content-section">
+            <h2>Transações recentes</h2>
+
+            <div class="transactions-table-container">
+                <table class="transactions-table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Descrição</th>
+                            <th>Categoria</th>
+                            <th>Tipo</th>
+                            <th>Valor</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for transaction in recent_transactions %}
+                            <tr>
+                                <td>{{ transaction.date|date:"d/m/Y" }}</td>
+                                <td>{{ transaction.description }}</td>
+                                <td>{{ transaction.category.name|default:"Sem categoria" }}</td>
+
+                                <td>
+                                    {% if transaction.type == "INCOME" %}
+                                        <span class="transaction-income">Receita</span>
+                                    {% else %}
+                                        <span class="transaction-expense">Despesa</span>
+                                    {% endif %}
+                                </td>
+
+                                <td>
+                                    R$ {{ transaction.amount|floatformat:2 }}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="5">Nenhuma transação cadastrada.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+
+    </main>
+
+</div>
+
+</body>
+</html>
