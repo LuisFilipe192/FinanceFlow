@@ -24,6 +24,26 @@ class TransactionAdmin(admin.ModelAdmin):
 
     ordering = ("-date",)
 
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+
+        if request.user.is_superuser:
+            return queryset
+
+        return queryset.filter(user=request.user)
+
+    def save_model(self, request, obj, form, change):
+        if not request.user.is_superuser:
+            obj.user = request.user
+
+        super().save_model(request, obj, form, change)
+
+    def get_readonly_fields(self, request, obj=None):
+        if request.user.is_superuser:
+            return ()
+
+        return ("user",)
+
 admin.site.register(Transaction, TransactionAdmin)
 admin.site.register(Category)
 
