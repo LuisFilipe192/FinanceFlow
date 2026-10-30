@@ -1,3 +1,5 @@
+from django.conf import settings
+
 from django.db import models
 from django.utils import timezone
 
@@ -22,7 +24,13 @@ class Transaction(models.Model):
         null=True,
         blank=True
     )
-    
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="transactions"
+    )
+
     def __str__(self):
         return self.description
 
