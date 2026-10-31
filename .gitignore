@@ -218,3 +218,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Agent skills (instaladas via npx skills)
+.agents/
+.claude/
+skills-lock.json
