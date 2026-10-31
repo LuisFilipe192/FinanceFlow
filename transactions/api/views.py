@@ -1,6 +1,7 @@
 import re
 
 from django.utils import timezone
+from django.db import transaction
 
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -22,6 +23,8 @@ from .serializers import (
     DashboardPeriodSerializer,
     TransactionSerializer,
 )
+
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -110,6 +113,7 @@ def transactions_api(request):
         status=status.HTTP_400_BAD_REQUEST
     )
 
+@ensure_csrf_cookie
 @api_view(["GET", "POST", "DELETE"])
 @permission_classes([IsAuthenticated])
 def categories_api(request):
@@ -117,6 +121,11 @@ def categories_api(request):
         categories = Category.objects.filter(
             user=request.user
         ).order_by("name")
+
+        Category.objects.get_or_create(
+            user=request.user,
+            name="Transferências"
+        )
 
         data = [
             {"id": category.id, "name": category.name}
@@ -139,13 +148,18 @@ def categories_api(request):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        try:
-            category.delete()
-        except Exception:
-            return Response(
-                {"error": "Não é possível excluir uma categoria vinculada a transações."},
-                status=status.HTTP_400_BAD_REQUEST
+        with transaction.atomic():
+            transfer_category, created = Category.objects.get_or_create(
+                user=request.user,
+                name="Transferências"
             )
+
+            Transaction.objects.filter(
+                user=request.user,
+                category=category
+            ).update(category=transfer_category)
+
+            category.delete()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -189,3 +203,39 @@ def categories_api(request):
         {"id": category.id, "name": category.name},
         status=status.HTTP_201_CREATED
     )
+
+@api_view(["PATCH", "DELETE"])
+@permission_classes([IsAuthenticated])
+def transaction_detail_api(request, pk):
+
+    try:
+        transaction = Transaction.objects.get(
+            id=pk,
+            user=request.user
+        )
+    except Transaction.DoesNotExist:
+        return Response(
+            {"error": "Transação não encontrada."},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    if request.method == "PATCH":
+        serializer = TransactionSerializer(
+            transaction,
+            data=request.data,
+            partial=True,
+            context={"request": request}
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+
+        return Response(
+            serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    if request.method == "DELETE":
+        transaction.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

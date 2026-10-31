@@ -1105,6 +1105,223 @@
     width: 145px;
     flex: 0 0 auto;
 }
+.notification {
+    position: fixed;
+    top: 220px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    z-index: 3000;
+
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    min-width: 300px;
+    max-width: 420px;
+    padding: 16px;
+
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+
+    color: var(--text-primary);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+
+    animation: notificationIn 0.25s ease;
+}
+
+.notification span {
+    flex: 1;
+    font-size: 0.9rem;
+}
+
+.notification-success > svg {
+    color: var(--accent);
+}
+
+.notification-error > svg {
+    color: #ff6b6b;
+}
+
+.notification-info > svg {
+    color: #60a5fa;
+}
+
+.notification button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 4px;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.notification button:hover {
+    color: var(--text-primary);
+}
+
+@keyframes notificationIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -12px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+@media (max-width: 480px) {
+    .notification {
+        top: 16px;
+        right: 12px;
+        left: 12px;
+        min-width: 0;
+        max-width: none;
+    }
+}
+
+.danger-button {
+    padding: 12px 18px;
+    background: #dc4545;
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+.danger-button:hover {
+    background: #bd3535;
+}
+
+.danger-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.transaction-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.transaction-edit-button,
+.transaction-delete-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 9px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: transparent;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.transaction-edit-button {
+    color: var(--accent);
+}
+
+.transaction-edit-button:hover {
+    background: rgba(181, 245, 106, 0.1);
+    border-color: var(--accent);
+}
+
+.transaction-delete-button {
+    color: #ff6868;
+}
+
+.transaction-delete-button:hover {
+    background: rgba(255, 104, 104, 0.1);
+    border-color: #ff6868;
+}
+
+.transactions-header-divider {
+    width: 100%;
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0 12px;
+}
+
+/* Calendário FinanceFlow */
+.react-datepicker {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 14px !important;
+    font-family: var(--font-heading) !important;
+    color: var(--text-primary) !important;
+    overflow: hidden;
+}
+
+.react-datepicker__header {
+    background: var(--bg-secondary) !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+.react-datepicker__current-month,
+.react-datepicker__day-name {
+    color: var(--text-primary) !important;
+}
+
+.react-datepicker__day {
+    color: var(--text-primary) !important;
+    border-radius: 8px !important;
+}
+
+.react-datepicker__day:hover {
+    background: rgba(181, 245, 106, 0.15) !important;
+    color: var(--accent) !important;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+    background: var(--accent) !important;
+    color: #101510 !important;
+    font-weight: 700;
+}
+
+.react-datepicker__day--outside-month {
+    color: #59625c !important;
+}
+
+.react-datepicker__navigation-icon::before {
+    border-color: var(--text-secondary) !important;
+}
+
+.react-datepicker__triangle {
+    display: none !important;
+}
+
+.react-datepicker__day--today {
+    border: 1px solid var(--accent) !important;
+}
+
+.react-datepicker__input-container input {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 0.95rem;
+    outline: none;
+    cursor: pointer;
+}
+
+.react-datepicker__input-container input:focus {
+    border-color: var(--accent);
+}
 
 
 

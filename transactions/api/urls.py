@@ -17,4 +17,9 @@ urlpatterns = [
         views.categories_api,
         name="categories-api"
     ),
+    path(
+        "transactions/<int:pk>/",
+        views.transaction_detail_api,
+        name="transaction-detail-api"
+    ),
 ]

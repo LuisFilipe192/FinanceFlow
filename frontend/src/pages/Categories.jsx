@@ -9,6 +9,8 @@ import {
     deleteCategory
 } from "../services/transactions";
 
+import Notification from "../components/Notification";
+
 function Categories() {
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -17,6 +19,9 @@ function Categories() {
     const [newCategoryName, setNewCategoryName] = useState("");
     const [categoryError, setCategoryError] = useState("");
     const [saving, setSaving] = useState(false);
+    const [notification, setNotification] = useState(null);
+    const [categoryToDelete, setCategoryToDelete] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
         async function loadCategories() {
@@ -25,15 +30,7 @@ function Categories() {
                 setCategories(data);
             } catch (error) {
                 console.error(error);
-
-                try {
-                    const data = JSON.parse(error.message);
-                    setCategoryError(
-                        data.name || "Não foi possível cadastrar a categoria."
-                    );
-                } catch {
-                    setCategoryError("Não foi possível cadastrar a categoria.");
-                }
+                setError("Não foi possível carregar as categorias.");
             } finally {
                 setLoading(false);
             }
@@ -94,23 +91,37 @@ function Categories() {
         }
     }
 
-    async function handleDeleteCategory(id) {
-        const confirmed = window.confirm(
-            "Tem certeza que deseja excluir esta categoria?"
-        );
-
-        if (!confirmed) return;
+    async function handleDeleteCategory() {
+        if (!categoryToDelete) return;
 
         try {
-            await deleteCategory(id);
+            setDeleting(true);
+
+            await deleteCategory(categoryToDelete.id);
 
             setCategories((previous) =>
-                previous.filter((category) => category.id !== id)
+                previous.filter(
+                    (category) => category.id !== categoryToDelete.id
+                )
             );
+
+            setCategoryToDelete(null);
+
+            setNotification({
+                type: "success",
+                message: "Categoria excluída com sucesso."
+            });
 
         } catch (error) {
             console.error(error);
-            alert(error.message);
+
+            setNotification({
+                type: "error",
+                message: error.message
+            });
+
+        } finally {
+            setDeleting(false);
         }
     }
 
@@ -179,7 +190,7 @@ function Categories() {
                                             type="button"
                                             className="modal-close"
                                             title="Excluir categoria"
-                                            onClick={() => handleDeleteCategory(category.id)}
+                                            onClick={() => setCategoryToDelete(category)}
                                         >
                                             <Trash2 size={18} />
                                         </button>
@@ -257,6 +268,57 @@ function Categories() {
                                 </form>
                             </div>
                         </div>
+                    )}
+                    {categoryToDelete && (
+                        <div className="modal-overlay">
+                            <div className="transaction-modal">
+                                <div className="modal-header">
+                                    <div>
+                                        <h2>Excluir categoria?</h2>
+                                        <p>
+                                            Tem certeza que deseja excluir
+                                            "{categoryToDelete.name}"?
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        className="modal-close"
+                                        disabled={deleting}
+                                        onClick={() => setCategoryToDelete(null)}
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
+
+                                <div className="modal-actions">
+                                    <button
+                                        type="button"
+                                        className="secondary-button"
+                                        disabled={deleting}
+                                        onClick={() => setCategoryToDelete(null)}
+                                    >
+                                        Cancelar
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        className="danger-button"
+                                        disabled={deleting}
+                                        onClick={handleDeleteCategory}
+                                    >
+                                        {deleting ? "Excluindo..." : "Excluir categoria"}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {notification && (
+                        <Notification
+                            type={notification.type}
+                            message={notification.message}
+                            onClose={() => setNotification(null)}
+                        />
                     )}
                 </div>
             </main>

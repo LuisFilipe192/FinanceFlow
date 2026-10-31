@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { ArrowDownLeft, ArrowUpRight, Plus, Search, ChevronDown} from "lucide-react";
+import {ArrowDownLeft,ArrowUpRight,Plus,Search,ChevronDown,Pencil,Trash2} from "lucide-react";
 
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
@@ -10,12 +10,13 @@ import {
     getCategories,
     createTransaction,
     createCategory,
+    updateTransaction,
+    deleteTransaction,
 } from "../services/transactions";
 
-
-
-
-
+import DatePicker from "react-datepicker";
+import { ptBR } from "date-fns/locale";
+import "react-datepicker/dist/react-datepicker.css";
 
 function Transactions() {
     const [transactions, setTransactions] = useState([]);
@@ -28,6 +29,9 @@ function Transactions() {
     const [error, setError] = useState(null);
     const [search, setSearch] = useState("");
     const [showModal, setShowModal] = useState(false);
+    const [editingTransaction, setEditingTransaction] = useState(null);
+    const [transactionToDelete, setTransactionToDelete] = useState(null);
+    const [deletingTransaction, setDeletingTransaction] = useState(false);
     const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
     const categoryDropdownRef = useRef(null);
 
@@ -78,7 +82,7 @@ function Transactions() {
         if (!/^[\p{L}\s]+$/u.test(name)) {
             setCategoryError("Use apenas letras e espaços.");
             return;
-}
+        }
 
         if (!name) {
             setCategoryError("Informe o nome da categoria.");
@@ -117,6 +121,50 @@ function Transactions() {
         }
     }
 
+    function handleEditTransaction(transaction) {
+        setEditingTransaction(transaction);
+
+        setFormData({
+            description: transaction.description,
+            amount: String(transaction.amount).replace(".", ","),
+            type: transaction.type,
+            date: transaction.date,
+            category: transaction.category
+                ? String(transaction.category)
+                : "",
+        });
+
+        setFieldErrors({});
+        setFormError("");
+        setShowCategoryInput(false);
+        setNewCategoryName("");
+        setCategoryError("");
+        setShowModal(true);
+    }
+
+    async function handleDeleteTransaction() {
+        if (!transactionToDelete) return;
+
+        try {
+            setDeletingTransaction(true);
+
+            await deleteTransaction(transactionToDelete.id);
+
+            setTransactions((previous) =>
+                previous.filter(
+                    (transaction) => transaction.id !== transactionToDelete.id
+                )
+            );
+
+            setTransactionToDelete(null);
+        } catch (error) {
+            console.error(error);
+            setFormError("Não foi possível excluir a transação.");
+        } finally {
+            setDeletingTransaction(false);
+        }
+    }
+
 
     async function handleSubmit(event) {
         event.preventDefault();
@@ -130,6 +178,21 @@ function Transactions() {
         const description = formData.description.trim();
         const amount = Number(formData.amount.replace(",", "."));
 
+        const transferCategory = categories.find(
+            (category) => category.name === "Transferências"
+        );
+
+        const categoryId = formData.category || (
+            transferCategory ? String(transferCategory.id) : ""
+        );
+
+        if (!categoryId) {
+            setFormError(
+                "A categoria Transferências não está disponível. Atualize a página e tente novamente."
+            );
+            return;
+        }
+
         try {
             setSaving(true);
 
@@ -137,15 +200,22 @@ function Transactions() {
                 ...formData,
                 description,
                 amount: amount.toFixed(2),
-                category: formData.category || null,
+                category: categoryId,
             };
 
-            const createdTransaction = await createTransaction(newTransaction);
+            const savedTransaction = editingTransaction
+                ? await updateTransaction(editingTransaction.id, newTransaction)
+                : await createTransaction(newTransaction);
 
-            setTransactions((previous) => [
-                createdTransaction,
-                ...previous,
-            ]);
+            setTransactions((previous) =>
+                editingTransaction
+                    ? previous.map((transaction) =>
+                        transaction.id === savedTransaction.id
+                            ? savedTransaction
+                            : transaction
+                    )
+                    : [savedTransaction, ...previous]
+            );
 
             setFormData({
                 description: "",
@@ -155,6 +225,7 @@ function Transactions() {
                 category: "",
             });
 
+            setEditingTransaction(null);
             setShowModal(false);
 
         } catch (error) {
@@ -254,6 +325,15 @@ function Transactions() {
                         <button
                             className="primary-button"
                             onClick={() => {
+                                const transferCategory = categories.find(
+                                    (category) => category.name === "Transferências"
+                                );
+
+                                setFormData((previous) => ({
+                                    ...previous,
+                                    category: transferCategory ? String(transferCategory.id) : ""
+                                }));
+
                                 setShowModal(true);
                                 setShowCategoryInput(false);
                                 setNewCategoryName("");
@@ -316,6 +396,7 @@ function Transactions() {
                             <h3>Histórico de transações</h3>
                             <span>{transactions.length} lançamento(s)</span>
                         </div>
+                        <div className="transactions-header-divider"></div>
 
                         {loading ? (
                             <div className="transactions-empty">
@@ -350,7 +431,6 @@ function Transactions() {
                                                     </span>
                                                 </div>
                                             </div>
-
                                             <div className="transaction-details">
                                                 <strong className={`transaction-amount ${isIncome ? "income" : "expense"}`}>
                                                     {isIncome ? "+" : "−"} {formatCurrency(transaction.amount)}
@@ -359,6 +439,26 @@ function Transactions() {
                                                 <span className={`transaction-type ${isIncome ? "income" : "expense"}`}>
                                                     {isIncome ? "Receita" : "Despesa"}
                                                 </span>
+
+                                                <div className="transaction-actions">
+                                                    <button
+                                                        type="button"
+                                                        className="transaction-edit-button"
+                                                        onClick={() => handleEditTransaction(transaction)}
+                                                    >
+                                                        <Pencil size={14} />
+                                                        Editar
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        className="transaction-delete-button"
+                                                        onClick={() => setTransactionToDelete(transaction)}
+                                                    >
+                                                        <Trash2 size={14} />
+                                                        Excluir
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -507,22 +607,6 @@ function Transactions() {
 
                                                 {showCategoryDropdown && (
                                                     <div className="category-dropdown-menu">
-                                                        <button
-                                                            type="button"
-                                                            className={`category-dropdown-option ${
-                                                                !formData.category ? "selected" : ""
-                                                            }`}
-                                                            onClick={() => {
-                                                                setFormData({
-                                                                    ...formData,
-                                                                    category: ""
-                                                                });
-                                                                setShowCategoryDropdown(false);
-                                                            }}
-                                                        >
-                                                            Sem categoria
-                                                        </button>
-
                                                         {categories.map((category) => (
                                                             <button
                                                                 type="button"
@@ -619,17 +703,42 @@ function Transactions() {
                                     )}
 
                                     <label>Data</label>
-                                        <input
-                                            type="date"
-                                            value={formData.date}
-                                            className={fieldErrors.date ? "input-error" : ""}
-                                            aria-invalid={Boolean(fieldErrors.date)}
-                                            aria-describedby={fieldErrors.date ? "date-error" : undefined}
-                                            onChange={(event) => {
-                                                setFormData({ ...formData, date: event.target.value });
-                                                setFieldErrors({ ...fieldErrors, date: "" });
+                                        <DatePicker
+                                            selected={
+                                                formData.date
+                                                    ? new Date(`${formData.date}T00:00:00`)
+                                                    : null
+                                            }
+                                            onChange={(date) => {
+                                                if (!date) {
+                                                    setFormData({
+                                                        ...formData,
+                                                        date: ""
+                                                    });
+                                                    return;
+                                                }
+
+                                                const year = date.getFullYear();
+                                                const month = String(date.getMonth() + 1).padStart(2, "0");
+                                                const day = String(date.getDate()).padStart(2, "0");
+
+                                                setFormData({
+                                                    ...formData,
+                                                    date: `${year}-${month}-${day}`
+                                                });
+
+                                                setFieldErrors({
+                                                    ...fieldErrors,
+                                                    date: ""
+                                                });
                                             }}
-                                            required
+                                            locale={ptBR}
+                                            dateFormat="dd/MM/yyyy"
+                                            placeholderText="Selecione uma data"
+                                            className={fieldErrors.date ? "input-error" : ""}
+                                            ariaInvalid={Boolean(fieldErrors.date)}
+                                            ariaDescribedBy={fieldErrors.date ? "date-error" : undefined}
+                                            showPopperArrow={false}
                                         />
                                         {fieldErrors.date && (
                                             <span id="date-error" className="field-error">
@@ -665,6 +774,51 @@ function Transactions() {
                                         </button>
                                     </div>
                                 </form>
+                            </div>
+                        </div>
+                    )}
+                    {transactionToDelete && (
+                        <div className="modal-overlay">
+                            <div className="transaction-modal">
+                                <div className="modal-header">
+                                    <div>
+                                        <h2>Excluir transação?</h2>
+                                        <p>
+                                            Tem certeza de que deseja excluir
+                                            "{transactionToDelete.description}"?
+                                            Essa ação não poderá ser desfeita.
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        className="modal-close"
+                                        onClick={() => setTransactionToDelete(null)}
+                                        disabled={deletingTransaction}
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+
+                                <div className="modal-actions">
+                                    <button
+                                        type="button"
+                                        className="secondary-button"
+                                        onClick={() => setTransactionToDelete(null)}
+                                        disabled={deletingTransaction}
+                                    >
+                                        Cancelar
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        className="danger-button"
+                                        onClick={handleDeleteTransaction}
+                                        disabled={deletingTransaction}
+                                    >
+                                        {deletingTransaction ? "Excluindo..." : "Excluir transação"}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
