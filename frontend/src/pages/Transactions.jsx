@@ -121,6 +121,21 @@ function Transactions() {
         }
     }
 
+    async function refreshFinancialSummary() {
+        try {
+            const currentDate = new Date();
+
+            const dashboardData = await getDashboard({
+                month: currentDate.getMonth() + 1,
+                year: currentDate.getFullYear(),
+            });
+
+            setSummary(dashboardData.summary);
+        } catch (error) {
+            console.error("Erro ao atualizar indicadores:", error);
+        }
+    }
+
     function handleEditTransaction(transaction) {
         setEditingTransaction(transaction);
 
@@ -157,6 +172,7 @@ function Transactions() {
             );
 
             setTransactionToDelete(null);
+            await refreshFinancialSummary();
         } catch (error) {
             console.error(error);
             setFormError("Não foi possível excluir a transação.");
@@ -216,6 +232,7 @@ function Transactions() {
                     )
                     : [savedTransaction, ...previous]
             );
+            await refreshFinancialSummary();
 
             setFormData({
                 description: "",
