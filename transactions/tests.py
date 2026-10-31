@@ -2,7 +2,7 @@ from decimal import Decimal
 from datetime import date
 from unittest.mock import patch
 
-from django.test import TestCase
+from django.test import Client, TestCase
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import UserManager
 from django.db import IntegrityError
@@ -571,3 +571,90 @@ class AnonymousAccessTests(TestCase):
             with self.subTest(method=method, url=url):
                 response = getattr(self.client, method)(url)
                 self.assertIn(response.status_code, (401, 403))
+
+
+class AccountDeletionTests(TestCase):
+    """Excluir a própria conta: pede a senha e apaga só os dados do usuário."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="ana", password="senha-forte-123")
+        self.other_user = User.objects.create_user(username="bruno", password="senha-forte-123")
+
+        category = Category.objects.create(name="Mercado", user=self.user)
+        Transaction.objects.create(
+            description="Compras",
+            amount=Decimal("80.00"),
+            type=Transaction.Type.EXPENSE,
+            date=date(2026, 10, 10),
+            category=category,
+            user=self.user,
+        )
+
+        other_category = Category.objects.create(name="Lazer", user=self.other_user)
+        Transaction.objects.create(
+            description="Cinema",
+            amount=Decimal("40.00"),
+            type=Transaction.Type.EXPENSE,
+            date=date(2026, 10, 10),
+            category=other_category,
+            user=self.other_user,
+        )
+
+        self.client.force_login(self.user)
+
+    def delete_account(self, payload, client=None):
+        return (client or self.client).delete(
+            "/api/auth/account/",
+            payload,
+            content_type="application/json",
+        )
+
+    def test_summary_shows_what_will_be_deleted(self):
+        response = self.client.get("/api/auth/account/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["transactions"], 1)
+        self.assertEqual(response.json()["categories"], 1)
+
+    def test_wrong_or_missing_password_keeps_the_account(self):
+        for payload in ({"password": "errada"}, {}):
+            with self.subTest(payload=payload):
+                response = self.delete_account(payload)
+
+                self.assertEqual(response.status_code, 400)
+                self.assertIn("password", response.json()["errors"])
+                self.assertTrue(User.objects.filter(id=self.user.id).exists())
+
+    def test_correct_password_deletes_only_own_data_and_ends_session(self):
+        response = self.delete_account({"password": "senha-forte-123"})
+
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(User.objects.filter(id=self.user.id).exists())
+        self.assertFalse(Transaction.objects.filter(user_id=self.user.id).exists())
+        self.assertFalse(Category.objects.filter(user_id=self.user.id).exists())
+
+        # Os dados de outra pessoa continuam intactos.
+        self.assertEqual(Transaction.objects.filter(user=self.other_user).count(), 1)
+        self.assertEqual(Category.objects.filter(user=self.other_user).count(), 1)
+
+        # A sessão foi encerrada.
+        session = self.client.get("/api/auth/session/").json()
+        self.assertFalse(session["authenticated"])
+
+    def test_requires_csrf_token(self):
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.user)
+
+        response = self.delete_account({"password": "senha-forte-123"}, client=client)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(User.objects.filter(id=self.user.id).exists())
+
+    def test_anonymous_cannot_access(self):
+        self.client.logout()
+
+        self.assertEqual(self.client.get("/api/auth/account/").status_code, 401)
+        self.assertEqual(
+            self.delete_account({"password": "senha-forte-123"}).status_code,
+            401,
+        )

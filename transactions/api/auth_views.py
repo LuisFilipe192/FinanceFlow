@@ -7,7 +7,7 @@ from django.http import HttpResponse, JsonResponse
 from django.views.csrf import csrf_failure as django_csrf_failure
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django.contrib.auth.password_validation import validate_password
 
 
@@ -214,4 +214,65 @@ def register_view(request):
 @require_POST
 def logout_view(request):
     logout(request)
+    return HttpResponse(status=204)
+
+
+@never_cache
+@csrf_protect
+@require_http_methods(["GET", "DELETE"])
+def account_view(request):
+    """GET mostra o que será apagado; DELETE exclui a conta (LGPD, art. 18)."""
+    if not request.user.is_authenticated:
+        return _json_response(
+            {"detail": "Sessão expirada ou usuário não autenticado."},
+            status=401,
+        )
+
+    user = request.user
+
+    if request.method == "GET":
+        return _json_response({
+            "user": _user_data(user),
+            "transactions": user.transactions.count(),
+            "categories": user.categories.count(),
+        })
+
+    payload = _json_payload(request)
+    if payload is None:
+        return _json_response(
+            {"detail": "Envie um objeto JSON válido."},
+            status=400,
+        )
+
+    # Ação destrutiva pede a senha de novo: uma sessão aberta num computador
+    # esquecido não basta para apagar a conta de alguém.
+    password = payload.get("password")
+
+    if not isinstance(password, str) or not password:
+        return _json_response(
+            {
+                "detail": "Confirme sua senha para excluir a conta.",
+                "errors": {"password": ["Informe sua senha."]},
+            },
+            status=400,
+        )
+
+    if not user.check_password(password):
+        return _json_response(
+            {
+                "detail": "Senha incorreta.",
+                "errors": {"password": ["Senha incorreta."]},
+            },
+            status=400,
+        )
+
+    # Categorias e transações saem junto (CASCADE em user; a categoria da
+    # transação é RESTRICT, que permite apagar quando tudo vai na mesma operação).
+    with transaction.atomic():
+        user.delete()
+
+    # Encerra a sessão atual. Outras sessões abertas deixam de valer sozinhas,
+    # porque o usuário a que apontam não existe mais.
+    logout(request)
+
     return HttpResponse(status=204)

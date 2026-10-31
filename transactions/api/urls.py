@@ -7,6 +7,7 @@ urlpatterns = [
     path("auth/login/", auth_views.login_view, name="auth-login"),
     path("auth/register/", auth_views.register_view, name="auth-register"),
     path("auth/logout/", auth_views.logout_view, name="auth-logout"),
+    path("auth/account/", auth_views.account_view, name="auth-account"),
     path(
         "dashboard/",
         views.dashboard_api,
