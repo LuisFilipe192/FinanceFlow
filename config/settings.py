@@ -143,6 +143,9 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
 ]
 
+# Rejeições CSRF na API retornam JSON; as páginas Django mantêm o tratamento padrão.
+CSRF_FAILURE_VIEW = "transactions.api.auth_views.csrf_failure"
+
 # DRF deve aceitar somente a sessão do Django. O padrão do DRF também inclui
 # BasicAuthentication, que não faz parte do fluxo do FinanceFlow.
 REST_FRAMEWORK = {
