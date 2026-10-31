@@ -223,3 +223,6 @@ __marimo__/
 .agents/
 .claude/
 skills-lock.json
+
+# Contexto local do Claude Code (não vai para o repositório)
+CLAUDE.local.md
