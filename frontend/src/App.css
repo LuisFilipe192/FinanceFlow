@@ -2196,6 +2196,108 @@
 }
 
 
+/* VERIFICAÇÃO DE SESSÃO (carregando / servidor fora do ar) */
+
+.auth-status-screen {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    padding: 24px;
+    background: var(--bg-primary);
+}
+
+.auth-status-screen .brand {
+    margin-bottom: 0;
+}
+
+/* Só aparece depois de 300ms: numa verificação rápida, a tela fica vazia
+   por um instante em vez de piscar o logo. */
+.auth-status-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+    opacity: 0;
+    animation: auth-status-in 300ms ease 300ms forwards;
+}
+
+.auth-status-bar {
+    position: relative;
+    width: 120px;
+    height: 3px;
+    overflow: hidden;
+    border-radius: 3px;
+    background: var(--border);
+}
+
+.auth-status-bar::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: 40%;
+    border-radius: 3px;
+    background: var(--accent);
+    animation: auth-status-slide 1s ease-in-out infinite;
+}
+
+.auth-status-error {
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+}
+
+.auth-status-error h1 {
+    color: var(--text-primary);
+    font-family: var(--font-heading);
+    font-size: 20px;
+}
+
+.auth-status-error p {
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+/* Texto só para leitores de tela. */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+@keyframes auth-status-in {
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes auth-status-slide {
+    from {
+        transform: translateX(-100%);
+    }
+    to {
+        transform: translateX(250%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-status-bar::after {
+        animation: none;
+        width: 100%;
+        opacity: 0.6;
+    }
+}
+
+
 /* CATEGORIA PROTEGIDA */
 
 /* Mesmo estilo da etiqueta "Padrão": verde sobre fundo verde translúcido. */

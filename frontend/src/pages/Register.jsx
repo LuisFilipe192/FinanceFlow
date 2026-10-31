@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AlertCircle, Check, Circle, UserPlus } from "lucide-react";
 
 import AuthLayout from "../components/auth/AuthLayout";
 import PasswordInput from "../components/auth/PasswordInput";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import { getRedirectTarget } from "../utils/authRedirect";
 
 // Mesmos caracteres aceitos pelo usuário padrão do Django.
 const USERNAME_PATTERN = /^[\w.@+-]+$/;
@@ -25,6 +26,7 @@ function Register() {
     const { register } = useAuth();
     const showToast = useToast();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
@@ -82,7 +84,7 @@ function Register() {
                 type: "success",
                 message: `Conta criada! Bem-vindo ao FinanceFlow, ${user.username}.`,
             });
-            navigate("/", { replace: true });
+            navigate(getRedirectTarget(location), { replace: true });
         } catch (registerError) {
             const fieldErrors = registerError.data?.errors;
 
@@ -110,7 +112,8 @@ function Register() {
             subtitle="Leva menos de um minuto. Depois é só começar a registrar."
             footer={
                 <>
-                    Já tem conta? <Link to="/login">Entrar</Link>
+                    Já tem conta?{" "}
+                    <Link to="/login" state={location.state}>Entrar</Link>
                 </>
             }
         >

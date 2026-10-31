@@ -4,6 +4,8 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
 
 const SESSION_ERROR = "Sessão expirada ou usuário não autenticado.";
 
+export const SESSION_CHECK_EVENT = "financeflow:session-check";
+
 export function getCsrfToken() {
     const cookie = document.cookie
         .split("; ")
@@ -74,6 +76,13 @@ export async function apiRequest(path, {
     const data = response.status === 204
         ? null
         : await response.json().catch(() => null);
+
+    // 401/403 fora das rotas de login pode ser sessão expirada. O AuthProvider
+    // escuta este evento e confere com o Django (um 403 também pode ser falha
+    // de CSRF, por isso ele pergunta em vez de deslogar direto).
+    if ((response.status === 401 || response.status === 403) && !useServerMessage) {
+        window.dispatchEvent(new Event(SESSION_CHECK_EVENT));
+    }
 
     if (!response.ok) {
         const error = new Error(

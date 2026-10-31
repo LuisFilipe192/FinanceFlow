@@ -1,8 +1,10 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import AuthProvider from "./components/AuthProvider";
 import ToastProvider from "./components/ToastProvider";
 import Layout from "./components/Layout";
+import RequireAuth from "./components/auth/RequireAuth";
+import GuestRoute from "./components/auth/GuestRoute";
 import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
 import Categories from "./pages/Categories";
@@ -13,23 +15,26 @@ import "./App.css";
 
 function App() {
     return (
-        // AuthProvider fica por fora de tudo: as rotas (etapa 6) e as telas
-        // de login e cadastro precisam saber quem está logado.
-        // ToastProvider também: o "Bem-vindo de volta" nasce na tela de login
-        // e continua visível depois de ir para o Dashboard.
+        // AuthProvider fica por fora de tudo: as rotas precisam saber quem
+        // está logado. ToastProvider também: o "Bem-vindo de volta" nasce na
+        // tela de login e continua visível depois de ir para o Dashboard.
         <AuthProvider>
             <ToastProvider>
                 <BrowserRouter>
                     <Routes>
-                        {/* Telas públicas, sem Sidebar e Header. */}
-                        <Route path="/login" element={<Login />} />
-                        <Route path="/register" element={<Register />} />
+                        {/* Públicas: só para quem NÃO está logado. */}
+                        <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+                        <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
 
-                        <Route element={<Layout />}>
+                        {/* Privadas: exigem sessão. */}
+                        <Route element={<RequireAuth><Layout /></RequireAuth>}>
                             <Route path="/" element={<Dashboard />} />
                             <Route path="/transactions" element={<Transactions />} />
                             <Route path="/categories" element={<Categories />} />
                         </Route>
+
+                        {/* Endereço desconhecido volta para o início. */}
+                        <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 </BrowserRouter>
             </ToastProvider>

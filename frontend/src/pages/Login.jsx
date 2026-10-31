@@ -1,16 +1,18 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AlertCircle, LogIn } from "lucide-react";
 
 import AuthLayout from "../components/auth/AuthLayout";
 import PasswordInput from "../components/auth/PasswordInput";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import { getRedirectTarget } from "../utils/authRedirect";
 
 function Login() {
     const { login } = useAuth();
     const showToast = useToast();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
@@ -39,7 +41,7 @@ function Login() {
             const user = await login({ username: username.trim(), password });
 
             showToast({ type: "success", message: `Bem-vindo de volta, ${user.username}!` });
-            navigate("/", { replace: true });
+            navigate(getRedirectTarget(location), { replace: true });
         } catch (loginError) {
             // O Django responde a mesma mensagem para usuário inexistente e
             // senha errada: assim ninguém descobre quais usuários existem.
@@ -56,7 +58,9 @@ function Login() {
             subtitle="Que bom te ver de novo. Entre para ver suas finanças."
             footer={
                 <>
-                    Ainda não tem conta? <Link to="/register">Criar conta</Link>
+                    {/* state segue junto: depois do cadastro, volta para a mesma página. */}
+                    Ainda não tem conta?{" "}
+                    <Link to="/register" state={location.state}>Criar conta</Link>
                 </>
             }
         >
