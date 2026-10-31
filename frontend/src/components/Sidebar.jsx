@@ -3,6 +3,7 @@ import {
     LayoutDashboard,
     ArrowLeftRight,
     Tags,
+    Settings,
 } from "lucide-react";
 
 import { NavLink } from "react-router-dom";
@@ -46,6 +47,16 @@ function Sidebar() {
                 >
                     <Tags size={18} />
                     <span>Categorias</span>
+                </NavLink>
+
+                <NavLink
+                    to="/settings"
+                    className={({ isActive }) =>
+                        `nav-item ${isActive ? "active" : ""}`
+                    }
+                >
+                    <Settings size={18} />
+                    <span>Configurações</span>
                 </NavLink>
             </nav>
         </aside>

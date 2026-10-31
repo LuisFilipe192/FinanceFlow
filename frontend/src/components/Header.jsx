@@ -22,6 +22,11 @@ function Header() {
             title: "Categorias",
             description: "Organize e acompanhe seus gastos.",
         },
+        "/settings": {
+            overline: "FINANCE / SETTINGS",
+            title: "Configurações",
+            description: "Gerencie sua conta e seus dados.",
+        },
     };
 
     const currentPage = pageInfo[location.pathname] || pageInfo["/"];

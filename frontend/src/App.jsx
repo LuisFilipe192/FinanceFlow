@@ -8,6 +8,7 @@ import GuestRoute from "./components/auth/GuestRoute";
 import Dashboard from "./pages/Dashboard";
 import Transactions from "./pages/Transactions";
 import Categories from "./pages/Categories";
+import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 
@@ -31,6 +32,7 @@ function App() {
                             <Route path="/" element={<Dashboard />} />
                             <Route path="/transactions" element={<Transactions />} />
                             <Route path="/categories" element={<Categories />} />
+                            <Route path="/settings" element={<Settings />} />
                         </Route>
 
                         {/* Endereço desconhecido volta para o início. */}
