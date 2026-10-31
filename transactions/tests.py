@@ -335,3 +335,160 @@ class CategoryEditTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertTrue(Category.objects.filter(id=default.id).exists())
+
+
+class UserIsolationTests(TestCase):
+    """O usuário logado (Ana) tenta ler e alterar os dados de outra pessoa (Bruno).
+
+    Todas as tentativas precisam falhar sem revelar nem modificar nada.
+    Respostas 404 (e não 403) são de propósito: não confirmam que o registro existe.
+    """
+
+    def setUp(self):
+        self.ana = User.objects.create_user(username="ana", password="teste123")
+        self.bruno = User.objects.create_user(username="bruno", password="teste123")
+
+        self.ana_category = Category.objects.create(name="Mercado", user=self.ana)
+        self.bruno_category = Category.objects.create(name="Viagem", user=self.bruno)
+
+        self.ana_transaction = Transaction.objects.create(
+            description="Compra da Ana",
+            amount=Decimal("50.00"),
+            type=Transaction.Type.EXPENSE,
+            date=date(2026, 10, 10),
+            category=self.ana_category,
+            user=self.ana,
+        )
+        self.bruno_transaction = Transaction.objects.create(
+            description="Passagem do Bruno",
+            amount=Decimal("900.00"),
+            type=Transaction.Type.EXPENSE,
+            date=date(2026, 10, 12),
+            category=self.bruno_category,
+            user=self.bruno,
+        )
+
+        self.client.force_login(self.ana)
+
+    # Leitura
+
+    def test_transaction_list_only_shows_own(self):
+        response = self.client.get("/api/transactions/")
+
+        descriptions = [item["description"] for item in response.json()]
+        self.assertEqual(descriptions, ["Compra da Ana"])
+
+    def test_category_list_only_shows_own(self):
+        response = self.client.get("/api/categories/")
+
+        names = {item["name"] for item in response.json()}
+        self.assertIn("Mercado", names)
+        self.assertNotIn("Viagem", names)
+
+    def test_dashboard_only_counts_own(self):
+        response = self.client.get("/api/dashboard/?month=10&year=2026")
+
+        summary = response.json()["summary"]
+        self.assertEqual(Decimal(summary["expenses"]), Decimal("50.00"))
+
+        categories = [item["category"] for item in response.json()["expenses_by_category"]]
+        self.assertNotIn("Viagem", categories)
+
+    # Alteração de transação alheia
+
+    def test_cannot_edit_other_users_transaction(self):
+        response = self.client.patch(
+            f"/api/transactions/{self.bruno_transaction.id}/",
+            {"description": "Alterada pela Ana"},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.bruno_transaction.refresh_from_db()
+        self.assertEqual(self.bruno_transaction.description, "Passagem do Bruno")
+
+    def test_cannot_delete_other_users_transaction(self):
+        response = self.client.delete(f"/api/transactions/{self.bruno_transaction.id}/")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(Transaction.objects.filter(id=self.bruno_transaction.id).exists())
+
+    # Uso de categoria alheia
+
+    def test_cannot_create_transaction_with_other_users_category(self):
+        response = self.client.post(
+            "/api/transactions/",
+            {
+                "description": "Tentativa",
+                "amount": "10.00",
+                "type": "EXPENSE",
+                "date": "2026-10-15",
+                "category": self.bruno_category.id,
+            },
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("category", response.json())
+
+    def test_cannot_move_own_transaction_to_other_users_category(self):
+        response = self.client.patch(
+            f"/api/transactions/{self.ana_transaction.id}/",
+            {"category": self.bruno_category.id},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.ana_transaction.refresh_from_db()
+        self.assertEqual(self.ana_transaction.category, self.ana_category)
+
+    def test_cannot_delete_other_users_category(self):
+        response = self.client.delete(
+            "/api/categories/",
+            {"id": self.bruno_category.id},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(Category.objects.filter(id=self.bruno_category.id).exists())
+
+    # Dono definido pelo servidor, nunca pelo cliente
+
+    def test_user_field_in_request_is_ignored(self):
+        response = self.client.post(
+            "/api/transactions/",
+            {
+                "description": "Tentando criar no nome do Bruno",
+                "amount": "10.00",
+                "type": "EXPENSE",
+                "date": "2026-10-15",
+                "category": self.ana_category.id,
+                "user": self.bruno.id,
+            },
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        created = Transaction.objects.get(id=response.json()["id"])
+        self.assertEqual(created.user, self.ana)
+
+
+class AnonymousAccessTests(TestCase):
+    """Sem login, nenhuma rota de dados responde com conteúdo."""
+
+    def test_private_endpoints_require_login(self):
+        endpoints = [
+            ("get", "/api/transactions/"),
+            ("post", "/api/transactions/"),
+            ("patch", "/api/transactions/1/"),
+            ("delete", "/api/transactions/1/"),
+            ("get", "/api/categories/"),
+            ("post", "/api/categories/"),
+            ("patch", "/api/categories/1/"),
+            ("get", "/api/dashboard/"),
+        ]
+
+        for method, url in endpoints:
+            with self.subTest(method=method, url=url):
+                response = getattr(self.client, method)(url)
+                self.assertIn(response.status_code, (401, 403))
