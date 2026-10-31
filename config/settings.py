@@ -134,9 +134,33 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
 ]
 
-
+# A API usa cookies de sessão entre portas no mesmo host durante o
+# desenvolvimento. Credenciais só são aceitas da origem explícita acima.
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = False
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
 ]
+
+# DRF deve aceitar somente a sessão do Django. O padrão do DRF também inclui
+# BasicAuthentication, que não faz parte do fluxo do FinanceFlow.
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+}
+
+# Sessões armazenadas no banco de dados do Django. Esses valores mantêm a
+# sessão disponível após recarregar a SPA e são compatíveis com localhost HTTP.
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 14
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SECURE = not DEBUG
+
+# O frontend atual lê csrftoken via document.cookie para enviar X-CSRFToken.
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SECURE = not DEBUG
