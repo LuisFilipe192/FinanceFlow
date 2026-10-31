@@ -1,5 +1,4 @@
 
-import { Bell, Search } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
 function Header() {
@@ -40,15 +39,9 @@ function Header() {
                 <p>{currentPage.description}</p>
             </div>
 
+            {/* Busca e notificações voltam quando existirem de verdade.
+                O avatar passa a usar o usuário logado na etapa 7. */}
             <div className="header-actions">
-                <button className="icon-button" aria-label="Pesquisar">
-                    <Search size={18} />
-                </button>
-
-                <button className="icon-button" aria-label="Notificações">
-                    <Bell size={18} />
-                </button>
-
                 <div className="user-avatar">LF</div>
             </div>
         </header>

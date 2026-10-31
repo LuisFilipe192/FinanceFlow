@@ -6,24 +6,13 @@ import {
 } from "lucide-react";
 
 import SummaryCard from "../components/SummaryCard";
-import Select from "../components/Select";
+import PeriodPicker from "../components/PeriodPicker";
 
 import MonthlyChart from "../components/MonthlyChart";
 import CategoryChart from "../components/CategoryChart";
 
 import { formatCurrency } from "../utils/format";
 import { getDashboard } from "../services/dashboard";
-
-const months = [
-    "Janeiro", "Fevereiro", "Março", "Abril",
-    "Maio", "Junho", "Julho", "Agosto",
-    "Setembro", "Outubro", "Novembro", "Dezembro",
-];
-
-const monthOptions = months.map((name, index) => ({
-    value: index + 1,
-    label: name,
-}));
 
 function Dashboard() {
     const today = new Date();
@@ -73,17 +62,16 @@ function Dashboard() {
         return () => controller.abort();
     }, [month, year]);
 
-    const yearOptions = Array.from(
-        { length: 11 },
-        (_, index) => today.getFullYear() - 5 + index
-    ).map((value) => ({ value, label: String(value) }));
-
     const displayValue = (value) => {
-        if (loading) return "Carregando...";
         if (error || !summary) return "Indisponível";
 
         return formatCurrency(value);
     };
+
+    const balance = Number(summary?.balance ?? 0);
+    const balanceTone = error || !summary || balance === 0
+        ? undefined
+        : balance > 0 ? "positive" : "negative";
 
     return (
         <>
@@ -96,21 +84,14 @@ function Dashboard() {
                         <h2>Resumo financeiro</h2>
                     </div>
 
-                    <div className="period-selector">
-                        <Select
-                            className="period-dropdown"
-                            value={month}
-                            options={monthOptions}
-                            onChange={setMonth}
-                        />
-
-                        <Select
-                            className="period-dropdown"
-                            value={year}
-                            options={yearOptions}
-                            onChange={setYear}
-                        />
-                    </div>
+                    <PeriodPicker
+                        month={month}
+                        year={year}
+                        onChange={(period) => {
+                            setMonth(period.month);
+                            setYear(period.year);
+                        }}
+                    />
                 </div>
 
                 <div className="summary-grid">
@@ -120,6 +101,7 @@ function Dashboard() {
                         description="Total de entradas"
                         icon={<ArrowDownLeft />}
                         variant="income"
+                        loading={loading}
                     />
 
                     <SummaryCard
@@ -128,24 +110,31 @@ function Dashboard() {
                         description="Total de saídas"
                         icon={<ArrowUpRight />}
                         variant="expense"
+                        loading={loading}
                     />
 
                     <SummaryCard
                         title="Saldo do período"
                         amount={displayValue(summary?.balance)}
-                        description="Receitas menos despesas"
+                        description={
+                            balanceTone === "negative"
+                                ? "Você gastou mais do que recebeu"
+                                : "Receitas menos despesas"
+                        }
                         icon={<Wallet />}
                         variant="balance"
+                        tone={balanceTone}
+                        loading={loading}
                     />
                 </div>
             </section>
 
             <section className="analytics-section">
-                <MonthlyChart data={dailyMovement} />
+                <MonthlyChart data={dailyMovement} loading={loading} />
             </section>
 
             <section className="analytics-section">
-                <CategoryChart data={expensesByCategory} />
+                <CategoryChart data={expensesByCategory} loading={loading} />
             </section>
         </>
     );

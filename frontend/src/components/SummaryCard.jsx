@@ -1,5 +1,7 @@
+import { Skeleton } from "./Skeleton";
 
-function SummaryCard({ title, amount, description, icon, variant }) {
+// tone: "positive" ou "negative" pinta o valor (usado no saldo).
+function SummaryCard({ title, amount, description, icon, variant, tone, loading = false }) {
     return (
         <article className={`summary-card ${variant}`}>
             <div className="summary-card-top">
@@ -7,7 +9,11 @@ function SummaryCard({ title, amount, description, icon, variant }) {
                 {icon}
             </div>
 
-            <h2>{amount}</h2>
+            {loading ? (
+                <Skeleton width="60%" height={30} className="summary-card-skeleton" />
+            ) : (
+                <h2 className={tone || undefined}>{amount}</h2>
+            )}
 
             <p>{description}</p>
         </article>

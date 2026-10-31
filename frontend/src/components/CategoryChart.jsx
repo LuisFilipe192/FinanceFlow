@@ -5,10 +5,11 @@ import {
     Pie,
     Cell,
     Tooltip,
-    Legend,
 } from "recharts";
 
+import { Skeleton } from "./Skeleton";
 import { formatCurrency } from "../utils/format";
+import { chartTooltipStyle } from "./chartStyles";
 
 const COLORS = [
     "#b5f56a",
@@ -20,7 +21,7 @@ const COLORS = [
     "#f49ac2",
 ];
 
-function CategoryChart({ data = [] }) {
+function CategoryChart({ data = [], loading = false }) {
     const chartData = data.map((category, index) => ({
         name: category.category || "Sem categoria",
         value: Number(category.total),
@@ -44,9 +45,15 @@ function CategoryChart({ data = [] }) {
                 <p>Distribuição dos seus gastos</p>
             </div>
 
-            <div className="category-chart-container">
-                {chartData.length > 0 ? (
-                    <>
+            {loading ? (
+                <div className="category-chart-layout">
+                    <div className="category-chart-container">
+                        <Skeleton width={220} height={220} className="skeleton-donut" />
+                    </div>
+                </div>
+            ) : chartData.length > 0 ? (
+                <div className="category-chart-layout">
+                    <div className="category-chart-container">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
@@ -73,17 +80,7 @@ function CategoryChart({ data = [] }) {
                                         formatCurrency(value),
                                         "Total",
                                     ]}
-                                    contentStyle={{
-                                        backgroundColor: "#181e1b",
-                                        border: "1px solid #29312c",
-                                        borderRadius: "8px",
-                                        color: "#e8eae9",
-                                    }}
-                                />
-
-                                <Legend
-                                    verticalAlign="bottom"
-                                    iconType="circle"
+                                    {...chartTooltipStyle}
                                 />
                             </PieChart>
                         </ResponsiveContainer>
@@ -95,14 +92,37 @@ function CategoryChart({ data = [] }) {
                                 {formatCurrency(totalExpenses)}
                             </strong>
                         </div>
-                    </>
-                ) : (
-                    <div className="category-chart-center">
-                        <span>Sem despesas neste período</span>
-                        <strong>{formatCurrency(0)}</strong>
                     </div>
-                )}
-            </div>
+
+                    <ul className="category-legend">
+                        {chartData.map((category) => (
+                            <li key={category.name}>
+                                <span
+                                    className="category-legend-dot"
+                                    style={{ background: category.color }}
+                                />
+
+                                <span className="category-legend-name">
+                                    {category.name}
+                                </span>
+
+                                <span className="category-legend-value">
+                                    {formatCurrency(category.value)}
+                                </span>
+
+                                <span className="category-legend-percent">
+                                    {Math.round((category.value / totalExpenses) * 100)}%
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            ) : (
+                <div className="chart-empty">
+                    <strong>Sem despesas neste período</strong>
+                    <span>Quando você registrar gastos, eles aparecem aqui por categoria.</span>
+                </div>
+            )}
         </div>
     );
 }

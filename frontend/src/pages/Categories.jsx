@@ -1,25 +1,33 @@
 import { useEffect, useState } from "react";
-import { Plus, Tags, Trash2 } from "lucide-react";
+import { Lock, Pencil, Plus, Tags, Trash2 } from "lucide-react";
 
-import Modal from "../components/Modal";
 import ConfirmDialog from "../components/ConfirmDialog";
+import EmptyState from "../components/EmptyState";
+import { SkeletonRows } from "../components/Skeleton";
+import CategoryFormModal from "../components/categories/CategoryFormModal";
+import { useToast } from "../context/ToastContext";
 import {
     getCategories,
-    createCategory,
     deleteCategory
 } from "../services/transactions";
 
-import Notification from "../components/Notification";
+// Categoria criada pelo backend que recebe as transações de categorias
+// excluídas. Por isso não pode ser renomeada nem excluída.
+const DEFAULT_CATEGORY_NAME = "Transferências";
+
+function sortByName(categories) {
+    return [...categories].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+}
 
 function Categories() {
+    const showToast = useToast();
+
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [showModal, setShowModal] = useState(false);
-    const [newCategoryName, setNewCategoryName] = useState("");
-    const [categoryError, setCategoryError] = useState("");
-    const [saving, setSaving] = useState(false);
-    const [notification, setNotification] = useState(null);
+    // showForm abre o modal; editingCategory diz se é renomear (objeto) ou criar (null).
+    const [showForm, setShowForm] = useState(false);
+    const [editingCategory, setEditingCategory] = useState(null);
     const [categoryToDelete, setCategoryToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
 
@@ -39,61 +47,40 @@ function Categories() {
         loadCategories();
     }, []);
 
-    
-    async function handleCreateCategory(event) {
-        event.preventDefault();
-
-        // Mesma regra do backend: letras (com acentos) separadas por um espaço.
-        const name = newCategoryName.trim().replace(/\s+/g, " ");
-
-        if (!name) {
-            setCategoryError("Informe o nome da categoria.");
-            return;
-        }
-
-        if (!/^\p{L}+(?: \p{L}+)*$/u.test(name)) {
-            setCategoryError("Use apenas letras e espaços.");
-            return;
-        }
-
-        if (name.length > 100) {
-            setCategoryError("Use no máximo 100 caracteres.");
-            return;
-        }
-
-        const alreadyExists = categories.some(
-            (category) =>
-                category.name.toLocaleLowerCase("pt-BR") ===
-                name.toLocaleLowerCase("pt-BR")
-        );
-
-        if (alreadyExists) {
-            setCategoryError("Essa categoria já está cadastrada.");
-            return;
-        }
-
-        try {
-            setSaving(true);
-            setCategoryError("");
-
-            const newCategory = await createCategory(name);
-
-            setCategories((previous) => [...previous, newCategory]);
-            setNewCategoryName("");
-            setShowModal(false);
-
-        } catch (error) {
-            console.error(error);
-            setCategoryError("Não foi possível cadastrar a categoria.");
-        } finally {
-            setSaving(false);
-        }
+    function openCreateForm() {
+        setEditingCategory(null);
+        setShowForm(true);
     }
 
-    function closeCreateModal() {
-        setShowModal(false);
-        setNewCategoryName("");
-        setCategoryError("");
+    function openEditForm(category) {
+        setEditingCategory(category);
+        setShowForm(true);
+    }
+
+    function closeForm() {
+        setShowForm(false);
+        setEditingCategory(null);
+    }
+
+    function handleCategorySaved(savedCategory, previousCategory) {
+        setCategories((previous) =>
+            sortByName(
+                previousCategory
+                    ? previous.map((category) =>
+                        category.id === savedCategory.id ? savedCategory : category
+                    )
+                    : [...previous, savedCategory]
+            )
+        );
+
+        closeForm();
+
+        showToast({
+            type: "success",
+            message: previousCategory
+                ? `"${previousCategory.name}" agora se chama "${savedCategory.name}".`
+                : `Categoria "${savedCategory.name}" criada.`,
+        });
     }
 
     async function handleDeleteCategory() {
@@ -112,7 +99,7 @@ function Categories() {
 
             setCategoryToDelete(null);
 
-            setNotification({
+            showToast({
                 type: "success",
                 message: "Categoria excluída com sucesso."
             });
@@ -120,7 +107,7 @@ function Categories() {
         } catch (error) {
             console.error(error);
 
-            setNotification({
+            showToast({
                 type: "error",
                 message: error.message
             });
@@ -130,21 +117,116 @@ function Categories() {
         }
     }
 
+    function renderList() {
+        if (loading) {
+            return <SkeletonRows rows={4} />;
+        }
+
+        if (error) {
+            return <EmptyState title={error} />;
+        }
+
+        if (categories.length === 0) {
+            return (
+                <EmptyState
+                    icon={<Tags size={24} />}
+                    title="Nenhuma categoria cadastrada"
+                    description="Categorias ajudam a entender para onde vai o seu dinheiro."
+                    action={
+                        <button className="primary-button" onClick={openCreateForm}>
+                            <Plus size={18} />
+                            Criar primeira categoria
+                        </button>
+                    }
+                />
+            );
+        }
+
+        return (
+            <div className="transactions-list">
+                {categories.map((category) => {
+                    const isDefault = category.name === DEFAULT_CATEGORY_NAME;
+
+                    return (
+                        <div className="transaction-row" key={category.id}>
+                            <div className="transaction-icon category">
+                                <Tags size={20} />
+                            </div>
+
+                            {/* Duplo clique no nome é um atalho para renomear. */}
+                            <div
+                                className="transaction-info"
+                                onDoubleClick={isDefault ? undefined : () => openEditForm(category)}
+                            >
+                                <strong>
+                                    {category.name}
+                                    {isDefault && (
+                                        <span className="badge">Padrão</span>
+                                    )}
+                                </strong>
+                                <div className="transaction-meta">
+                                    <span>
+                                        {isDefault
+                                            ? "Usada quando nenhuma categoria é escolhida"
+                                            : "Categoria financeira"}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {isDefault ? (
+                                <span
+                                    className="row-locked"
+                                    title="Categoria padrão: não pode ser renomeada nem excluída"
+                                >
+                                    <Lock size={14} />
+                                    Protegida
+                                </span>
+                            ) : (
+                                <div className="row-actions">
+                                    <button
+                                        type="button"
+                                        className="row-action"
+                                        aria-label={`Renomear categoria ${category.name}`}
+                                        title="Renomear"
+                                        onClick={() => openEditForm(category)}
+                                    >
+                                        <Pencil size={16} />
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        className="row-action danger"
+                                        aria-label={`Excluir categoria ${category.name}`}
+                                        title="Excluir categoria"
+                                        onClick={() => setCategoryToDelete(category)}
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    }
+
+    const countLabel = categories.length === 1
+        ? "1 categoria cadastrada"
+        : `${categories.length} categorias cadastradas`;
+
     return (
-        <div className="page-content">
-            <div className="transactions-toolbar">
+        <section className="dashboard-section">
+            <div className="section-heading">
                 <div>
+                    <span className="section-overline">
+                        03 / ORGANIZATION
+                    </span>
                     <h2>Categorias</h2>
                     <p>Organize suas receitas e despesas.</p>
                 </div>
-                <button
-                    className="primary-button"
-                    onClick={() => {
-                        setShowModal(true);
-                        setCategoryError("");
-                        setNewCategoryName("");
-                    }}
-                >
+
+                <button className="primary-button" onClick={openCreateForm}>
                     <Plus size={18} />
                     Nova categoria
                 </button>
@@ -152,105 +234,27 @@ function Categories() {
 
             <div className="transactions-table-card">
                 <div className="transactions-table-header">
-                    <div>
-                        <h3>Minhas categorias</h3>
-                        <p>
-                            {categories.length} categorias cadastradas
-                        </p>
-                    </div>
+                    <h3>Minhas categorias</h3>
+                    {!loading && !error && <span>{countLabel}</span>}
                 </div>
+                <div className="transactions-header-divider"></div>
 
-                {loading ? (
-                    <p>Carregando categorias...</p>
-                ) : error ? (
-                    <p className="form-error">{error}</p>
-                ) : categories.length === 0 ? (
-                    <div className="transactions-empty">
-                        <Tags size={32} />
-                        <h3>Nenhuma categoria cadastrada</h3>
-                        <p>Comece criando sua primeira categoria.</p>
-                    </div>
-                ) : (
-                    <div className="transactions-list">
-                        {categories.map((category) => (
-                            <div
-                                className="transaction-row"
-                                key={category.id}
-                            >
-                                <div className="transaction-icon">
-                                    <Tags size={20} />
-                                </div>
-
-                                <div className="transaction-info">
-                                    <strong>{category.name}</strong>
-                                    <span>Categoria financeira</span>
-                                </div>
-                                <button
-                                    type="button"
-                                    className="modal-close"
-                                    title="Excluir categoria"
-                                    onClick={() => setCategoryToDelete(category)}
-                                >
-                                    <Trash2 size={18} />
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                )}
+                {renderList()}
             </div>
-            {showModal && (
-                <Modal
-                    title="Nova categoria"
-                    description="Cadastre uma nova categoria financeira."
-                    onClose={closeCreateModal}
-                    closeDisabled={saving}
-                >
-                    <form onSubmit={handleCreateCategory}>
-                        <label>Nome da categoria</label>
 
-                        <input
-                            type="text"
-                            placeholder="Ex.: Alimentação, Transporte..."
-                            maxLength={100}
-                            value={newCategoryName}
-                            onChange={(event) => {
-                                setNewCategoryName(event.target.value);
-                                setCategoryError("");
-                            }}
-                            required
-                        />
-
-                        {categoryError && (
-                            <span className="field-error">
-                                {categoryError}
-                            </span>
-                        )}
-
-                        <div className="modal-actions">
-                            <button
-                                type="button"
-                                className="secondary-button"
-                                disabled={saving}
-                                onClick={closeCreateModal}
-                            >
-                                Cancelar
-                            </button>
-
-                            <button
-                                type="submit"
-                                className="primary-button"
-                                disabled={saving}
-                            >
-                                {saving ? "Salvando..." : "Salvar categoria"}
-                            </button>
-                        </div>
-                    </form>
-                </Modal>
+            {showForm && (
+                <CategoryFormModal
+                    category={editingCategory}
+                    categories={categories}
+                    onSaved={handleCategorySaved}
+                    onClose={closeForm}
+                />
             )}
+
             {categoryToDelete && (
                 <ConfirmDialog
                     title="Excluir categoria?"
-                    description={`Tem certeza que deseja excluir "${categoryToDelete.name}"?`}
+                    description={`Tem certeza que deseja excluir "${categoryToDelete.name}"? As transações dela passam para ${DEFAULT_CATEGORY_NAME}.`}
                     confirmLabel="Excluir categoria"
                     loadingLabel="Excluindo..."
                     loading={deleting}
@@ -258,14 +262,7 @@ function Categories() {
                     onCancel={() => setCategoryToDelete(null)}
                 />
             )}
-            {notification && (
-                <Notification
-                    type={notification.type}
-                    message={notification.message}
-                    onClose={() => setNotification(null)}
-                />
-            )}
-        </div>
+        </section>
     );
 }
 

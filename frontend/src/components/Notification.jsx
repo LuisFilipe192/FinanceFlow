@@ -19,12 +19,15 @@ function Notification({ type = "success", message, onClose }) {
     const Icon = icons[type] || Info;
 
     return (
-        <div className={`notification notification-${type}`}>
+        <div
+            className={`notification notification-${type}`}
+            role={type === "error" ? "alert" : "status"}
+        >
             <Icon size={22} />
 
             <span>{message}</span>
 
-            <button type="button" onClick={onClose}>
+            <button type="button" aria-label="Fechar aviso" onClick={onClose}>
                 <X size={18} />
             </button>
         </div>

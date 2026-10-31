@@ -1107,10 +1107,8 @@
 }
 .notification {
     position: fixed;
-    top: 220px;
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
+    bottom: 24px;
+    right: 24px;
     z-index: 3000;
 
     display: flex;
@@ -1167,17 +1165,18 @@
 @keyframes notificationIn {
     from {
         opacity: 0;
-        transform: translate(-50%, -12px);
+        transform: translateY(12px);
     }
     to {
         opacity: 1;
-        transform: translate(-50%, 0);
+        transform: translateY(0);
     }
 }
 
 @media (max-width: 480px) {
     .notification {
         top: 16px;
+        bottom: auto;
         right: 12px;
         left: 12px;
         min-width: 0;
@@ -1321,6 +1320,546 @@
 
 .react-datepicker__input-container input:focus {
     border-color: var(--accent);
+}
+
+
+/* ESQUELETOS DE CARREGAMENTO */
+
+.skeleton {
+    display: block;
+    border-radius: 6px;
+    background: linear-gradient(
+        90deg,
+        var(--surface-hover) 0%,
+        #2e3832 50%,
+        var(--surface-hover) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.skeleton-icon {
+    border-radius: 14px;
+    flex-shrink: 0;
+}
+
+.skeleton-chart {
+    border-radius: 10px;
+}
+
+.skeleton-donut {
+    border-radius: 50%;
+}
+
+.summary-card-skeleton {
+    margin: 24px 0 8px;
+}
+
+.skeleton-row .transaction-info {
+    gap: 9px;
+}
+
+@keyframes skeleton-shimmer {
+    from {
+        background-position: 100% 0;
+    }
+    to {
+        background-position: -100% 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton {
+        animation: none;
+    }
+}
+
+
+/* SELETOR DE PERÍODO */
+
+.period-picker {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.period-control {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.period-arrow {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
+    border-radius: 8px;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.period-arrow:hover:not(:disabled) {
+    background: var(--surface-hover);
+    color: var(--accent);
+}
+
+.period-arrow:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.period-label {
+    min-width: 130px;
+    text-align: center;
+    color: var(--text-primary);
+    font-family: var(--font-heading);
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.period-label span {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.period-today {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid transparent;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    transition: border-color 0.15s ease;
+}
+
+.period-today:hover {
+    border-color: var(--border);
+}
+
+/* Indicador (não clicável) mostrado quando o período é o mês corrente. */
+.period-current {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.period-current-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px rgba(181, 245, 106, 0.15);
+}
+
+@media (max-width: 700px) {
+    .section-heading {
+        flex-wrap: wrap;
+        gap: 14px;
+    }
+}
+
+
+/* CARDS DE RESUMO: SALDO COM COR */
+
+.summary-card h2.positive {
+    color: var(--accent);
+}
+
+.summary-card h2.negative {
+    color: var(--danger);
+}
+
+
+/* GRÁFICO DE CATEGORIAS */
+
+.category-chart-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 24px;
+}
+
+.category-chart-layout .category-chart-container {
+    height: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.category-chart-layout .category-chart-center {
+    top: 50%;
+}
+
+.category-legend {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.category-legend li {
+    display: grid;
+    grid-template-columns: 10px minmax(0, 1fr) auto 44px;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.category-legend li:nth-child(odd) {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.category-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.category-legend-name {
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.category-legend-value {
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.category-legend-percent {
+    color: var(--text-secondary);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.chart-empty {
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-align: center;
+}
+
+.chart-empty strong {
+    color: var(--text-primary);
+    font-family: var(--font-heading);
+    font-size: 16px;
+}
+
+.chart-empty span {
+    max-width: 320px;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+@media (max-width: 900px) {
+    .category-chart-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* LISTA DE TRANSAÇÕES AGRUPADA POR DIA */
+
+.transaction-group + .transaction-group {
+    margin-top: 8px;
+    border-top: 1px solid var(--border);
+}
+
+.transaction-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 24px 4px;
+}
+
+.transaction-group-day {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+}
+
+.transaction-group-day strong {
+    color: var(--text-primary);
+    font-family: var(--font-heading);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.transaction-group-day span {
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.transaction-group-day span::before {
+    content: "·";
+    margin-right: 8px;
+    color: var(--border);
+}
+
+.transaction-group-totals {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.transaction-group-totals span {
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.transaction-group-totals .income {
+    color: var(--accent);
+    background: rgba(181, 245, 106, 0.08);
+}
+
+.transaction-group-totals .expense {
+    color: var(--danger);
+    background: rgba(241, 124, 124, 0.08);
+}
+
+.transaction-amount {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Selo (Receita/Despesa) e ações ocupam a mesma célula do grid, uma sobre
+   a outra. Assim as ações não reservam um espaço vazio na linha. */
+.transaction-trailing {
+    display: grid;
+    justify-items: end;
+    align-items: center;
+}
+
+.transaction-trailing > * {
+    grid-area: 1 / 1;
+}
+
+/* z-index explícito: um elemento com opacity < 1 (o selo escondido) é
+   pintado numa camada acima dos vizinhos e "roubaria" os cliques. */
+.transaction-trailing .row-actions {
+    position: relative;
+    z-index: 1;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.transaction-trailing .transaction-type,
+.transaction-trailing .row-actions {
+    transition: opacity 150ms ease;
+}
+
+.transaction-trailing .row-action {
+    width: 30px;
+    height: 26px;
+}
+
+.transaction-row:hover .transaction-trailing .transaction-type,
+.transaction-row:focus-within .transaction-trailing .transaction-type {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.transaction-row:hover .transaction-trailing .row-actions,
+.transaction-row:focus-within .transaction-trailing .row-actions {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Toque não tem hover: mostra as ações direto, no lugar do selo
+   (a cor e o sinal do valor já dizem se é receita ou despesa). */
+@media (hover: none) {
+    .transaction-trailing .transaction-type {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .transaction-trailing .row-actions {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
+@media (max-width: 600px) {
+    .transaction-group-header {
+        padding: 16px 16px 4px;
+        flex-wrap: wrap;
+    }
+}
+
+.transaction-icon.category {
+    background: rgba(181, 245, 106, 0.08);
+    color: var(--accent);
+}
+
+.badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    vertical-align: middle;
+    background: rgba(181, 245, 106, 0.12);
+    color: var(--accent);
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+}
+
+
+/* AÇÕES DA LINHA (EDITAR / EXCLUIR) */
+
+.row-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.row-action {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid transparent;
+    border-radius: 8px;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.row-action:hover {
+    background: var(--surface-hover);
+    color: var(--accent);
+}
+
+.row-action.danger:hover {
+    background: rgba(241, 124, 124, 0.1);
+    color: var(--danger);
+}
+
+/* Com mouse, as ações aparecem ao passar sobre a linha ou ao navegar com Tab.
+   Em telas de toque não existe hover, então ficam sempre visíveis. */
+@media (hover: hover) {
+    .row-actions {
+        opacity: 0;
+        transition: opacity 0.15s ease;
+    }
+
+    .transaction-row:hover .row-actions,
+    .transaction-row:focus-within .row-actions {
+        opacity: 1;
+    }
+}
+
+
+/* CATEGORIA PROTEGIDA */
+
+.row-locked {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+    cursor: help;
+}
+
+
+/* AJUDA E CONTADOR DOS CAMPOS */
+
+.field-help {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    min-height: 18px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.field-help .field-error {
+    margin-top: 0;
+}
+
+.field-counter {
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+
+/* FILTRO POR TIPO */
+
+.segmented-control {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.segmented-control button {
+    padding: 8px 14px;
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.segmented-control button:hover {
+    color: var(--text-primary);
+}
+
+.segmented-control button.active {
+    background: var(--surface-hover);
+    color: var(--accent);
+}
+
+@media (max-width: 700px) {
+    .segmented-control button {
+        flex: 1;
+    }
+}
+
+
+/* ESTADOS VAZIOS */
+
+.transactions-empty .primary-button,
+.transactions-empty .secondary-button {
+    margin-top: 4px;
+}
+
+.transactions-empty p {
+    max-width: 360px;
 }
 
 

@@ -43,6 +43,14 @@ export function createCategory(name) {
     });
 }
 
+export function updateCategory(id, name) {
+    return apiRequest(`/categories/${id}/`, {
+        method: "PATCH",
+        body: { name },
+        fallbackError: "Não foi possível renomear a categoria.",
+    });
+}
+
 export function deleteCategory(id) {
     return apiRequest("/categories/", {
         method: "DELETE",

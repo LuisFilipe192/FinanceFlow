@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
-import { ArrowDownLeft, ArrowUpRight, Plus, Search } from "lucide-react";
+import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Plus, Search } from "lucide-react";
 
 import ConfirmDialog from "../components/ConfirmDialog";
+import EmptyState from "../components/EmptyState";
+import { Skeleton, SkeletonRows } from "../components/Skeleton";
 import TransactionFormModal from "../components/transactions/TransactionFormModal";
 import TransactionList from "../components/transactions/TransactionList";
+import { useToast } from "../context/ToastContext";
 import { formatCurrency } from "../utils/format";
 import { getDashboard } from "../services/dashboard";
 import {
@@ -21,7 +24,15 @@ function getCurrentPeriod() {
     };
 }
 
+const TYPE_FILTERS = [
+    { value: "ALL", label: "Todas" },
+    { value: "INCOME", label: "Receitas" },
+    { value: "EXPENSE", label: "Despesas" },
+];
+
 function Transactions() {
+    const showToast = useToast();
+
     const [transactions, setTransactions] = useState([]);
     const [categories, setCategories] = useState([]);
     const [summary, setSummary] = useState({
@@ -33,6 +44,7 @@ function Transactions() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [search, setSearch] = useState("");
+    const [typeFilter, setTypeFilter] = useState("ALL");
 
     // showForm abre o modal; editingTransaction diz se é edição (objeto) ou criação (null).
     const [showForm, setShowForm] = useState(false);
@@ -104,6 +116,11 @@ function Transactions() {
 
         await refreshFinancialSummary();
         closeForm();
+
+        showToast({
+            type: "success",
+            message: isEditing ? "Transação atualizada." : "Transação registrada.",
+        });
     }
 
     function closeDeleteDialog() {
@@ -127,6 +144,7 @@ function Transactions() {
             );
 
             closeDeleteDialog();
+            showToast({ type: "success", message: "Transação excluída." });
             await refreshFinancialSummary();
         } catch (error) {
             console.error(error);
@@ -137,8 +155,74 @@ function Transactions() {
     }
 
     const filteredTransactions = transactions.filter((transaction) =>
+        (typeFilter === "ALL" || transaction.type === typeFilter) &&
         transaction.description.toLowerCase().includes(search.toLowerCase())
     );
+
+    const isFiltering = search !== "" || typeFilter !== "ALL";
+
+    function clearFilters() {
+        setSearch("");
+        setTypeFilter("ALL");
+    }
+
+    function renderList() {
+        if (loading) {
+            return <SkeletonRows rows={5} />;
+        }
+
+        if (error) {
+            return (
+                <EmptyState
+                    title="Não foi possível carregar suas transações"
+                    description={error}
+                />
+            );
+        }
+
+        if (transactions.length === 0) {
+            return (
+                <EmptyState
+                    icon={<ArrowLeftRight size={24} />}
+                    title="Nenhuma transação ainda"
+                    description="Registre sua primeira receita ou despesa para começar a acompanhar suas finanças."
+                    action={
+                        <button className="primary-button" onClick={openCreateForm}>
+                            <Plus size={18} />
+                            Adicionar primeira transação
+                        </button>
+                    }
+                />
+            );
+        }
+
+        if (filteredTransactions.length === 0) {
+            return (
+                <EmptyState
+                    icon={<Search size={24} />}
+                    title="Nada encontrado"
+                    description={
+                        search
+                            ? `Nenhuma transação corresponde a "${search}".`
+                            : "Nenhuma transação desse tipo."
+                    }
+                    action={
+                        <button className="secondary-button" onClick={clearFilters}>
+                            Limpar filtros
+                        </button>
+                    }
+                />
+            );
+        }
+
+        return (
+            <TransactionList
+                transactions={filteredTransactions}
+                onEdit={openEditForm}
+                onDelete={setTransactionToDelete}
+            />
+        );
+    }
 
     return (
         <>
@@ -167,9 +251,13 @@ function Transactions() {
                             </div>
                         </div>
 
-                        <strong className="income">
-                            {formatCurrency(summary.income)}
-                        </strong>
+                        {loading ? (
+                            <Skeleton width="55%" height={30} />
+                        ) : (
+                            <strong className="income">
+                                {formatCurrency(summary.income)}
+                            </strong>
+                        )}
 
                         <span className="summary-description">
                             Total recebido neste mês
@@ -184,9 +272,13 @@ function Transactions() {
                             </div>
                         </div>
 
-                        <strong className="expense">
-                            {formatCurrency(summary.expenses)}
-                        </strong>
+                        {loading ? (
+                            <Skeleton width="55%" height={30} />
+                        ) : (
+                            <strong className="expense">
+                                {formatCurrency(summary.expenses)}
+                            </strong>
+                        )}
 
                         <span className="summary-description">
                             Total gasto neste mês
@@ -204,38 +296,34 @@ function Transactions() {
                             onChange={(event) => setSearch(event.target.value)}
                         />
                     </div>
+
+                    <div className="segmented-control" role="group" aria-label="Filtrar por tipo">
+                        {TYPE_FILTERS.map((filter) => (
+                            <button
+                                type="button"
+                                key={filter.value}
+                                className={typeFilter === filter.value ? "active" : ""}
+                                aria-pressed={typeFilter === filter.value}
+                                onClick={() => setTypeFilter(filter.value)}
+                            >
+                                {filter.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
                 <div className="transactions-table-card">
                     <div className="transactions-table-header">
                         <h3>Histórico de transações</h3>
-                        <span>{transactions.length} lançamento(s)</span>
+                        <span>
+                            {isFiltering
+                                ? `${filteredTransactions.length} de ${transactions.length} lançamento(s)`
+                                : `${transactions.length} lançamento(s)`}
+                        </span>
                     </div>
                     <div className="transactions-header-divider"></div>
 
-                    {loading ? (
-                        <div className="transactions-empty">
-                            <p>Carregando transações...</p>
-                        </div>
-                    ) : error ? (
-                        <div className="transactions-empty">
-                            <p>Erro ao carregar: {error}</p>
-                        </div>
-                    ) : filteredTransactions.length > 0 ? (
-                        <TransactionList
-                            transactions={filteredTransactions}
-                            onEdit={openEditForm}
-                            onDelete={setTransactionToDelete}
-                        />
-                    ) : (
-                        <div className="transactions-empty">
-                            <p>
-                                {search
-                                    ? "Nenhuma transação encontrada."
-                                    : "Nenhuma transação cadastrada."}
-                            </p>
-                        </div>
-                    )}
+                    {renderList()}
                 </div>
             </section>
 
