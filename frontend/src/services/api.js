@@ -47,14 +47,28 @@ export async function apiRequest(path, {
         headers["X-CSRFToken"] = getCsrfToken();
     }
 
-    const response = await fetch(`${API_URL}${path}`, {
-        method,
-        credentials: "include",
-        headers,
-        body: body !== undefined ? JSON.stringify(body) : undefined,
-        signal,
-        keepalive,
-    });
+    let response;
+
+    try {
+        response = await fetch(`${API_URL}${path}`, {
+            method,
+            credentials: "include",
+            headers,
+            body: body !== undefined ? JSON.stringify(body) : undefined,
+            signal,
+            keepalive,
+        });
+    } catch (error) {
+        // Cancelamento proposital (AbortController) segue como está.
+        if (error.name === "AbortError") throw error;
+
+        // fetch só falha assim quando nem chegou ao servidor
+        // (backend desligado, sem internet). A mensagem original é "Failed to fetch".
+        throw new Error(
+            "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.",
+            { cause: error }
+        );
+    }
 
     // 204 (exclusões) não tem corpo; outras respostas podem não ser JSON.
     const data = response.status === 204

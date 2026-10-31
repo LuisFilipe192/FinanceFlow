@@ -3,24 +3,16 @@ import {
     LayoutDashboard,
     ArrowLeftRight,
     Tags,
-    Wallet,
 } from "lucide-react";
 
 import { NavLink } from "react-router-dom";
 
+import Brand from "./Brand";
+
 function Sidebar() {
     return (
         <aside className="sidebar">
-            <div className="brand">
-                <div className="brand-icon">
-                    <Wallet size={21} />
-                </div>
-
-                <span>
-                    Finance<span className="brand-highlight">Flow</span>
-                    <span className="brand-dot">.</span>
-                </span>
-            </div>
+            <Brand />
 
             <div className="sidebar-label">WORKSPACE</div>
 
