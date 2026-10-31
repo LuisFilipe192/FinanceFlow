@@ -240,8 +240,9 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
                     </button>
                 </div>
 
-                <label>Descrição</label>
+                <label htmlFor="transaction-description">Descrição</label>
                 <input
+                    id="transaction-description"
                     type="text"
                     placeholder={
                         formData.type === "INCOME"
@@ -266,8 +267,9 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
                     </span>
                 )}
 
-                <label>Valor</label>
+                <label htmlFor="transaction-amount">Valor</label>
                 <input
+                    id="transaction-amount"
                     type="text"
                     inputMode="numeric"
                     placeholder="R$ 0,00"
@@ -295,9 +297,10 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
 
                 {!showCategoryInput ? (
                     <>
-                        <label>Categoria</label>
+                        <label htmlFor="transaction-category">Categoria</label>
 
                         <Select
+                            id="transaction-category"
                             value={formData.category}
                             options={categoryOptions}
                             placeholder="Sem categoria"
@@ -320,9 +323,10 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
                     </>
                 ) : (
                     <div className="category-create-form">
-                        <label>Nome da nova categoria</label>
+                        <label htmlFor="new-category-name">Nome da nova categoria</label>
 
                         <input
+                            id="new-category-name"
                             type="text"
                             placeholder="Digite o nome da categoria"
                             maxLength={100}
@@ -376,8 +380,9 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
                     </div>
                 )}
 
-                <label>Data</label>
+                <label htmlFor="transaction-date">Data</label>
                 <DatePicker
+                    id="transaction-date"
                     selected={formData.date ? parseISODate(formData.date) : null}
                     onChange={(date) => {
                         setFormData({

@@ -20,6 +20,8 @@
 
     --accent: #b5f56a;
     --danger: #f17c7c;
+    --danger-strong: #dc4545;
+    --danger-strong-hover: #bd3535;
     --info: #8bb8ff;
     --border: #29312c;
     --surface-hover: #252e28;
@@ -54,6 +56,19 @@ button {
 a {
     color: inherit;
     text-decoration: none;
+}
+
+/* Contorno de foco só para quem navega pelo teclado (Tab). Clique com o
+   mouse não mostra o contorno: é isso que o :focus-visible decide. */
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* Campos de texto já mostram o foco pela cor da borda. */
+input:focus-visible,
+textarea:focus-visible {
+    outline: none;
 }
 
 #root {
