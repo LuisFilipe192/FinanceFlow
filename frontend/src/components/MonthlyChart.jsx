@@ -10,13 +10,9 @@ import {
     Legend,
 } from "recharts";
 
-function MonthlyChart({ data = [] }) {
-    const formatCurrency = (value) =>
-        Number(value).toLocaleString("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-        });
+import { formatCurrency } from "../utils/format";
 
+function MonthlyChart({ data = [] }) {
     const chartData = data.map((item) => ({
         day: String(item.day).padStart(2, "0"),
         receitas: Number(item.income),

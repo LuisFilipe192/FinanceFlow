@@ -8,6 +8,8 @@ import {
     Legend,
 } from "recharts";
 
+import { formatCurrency } from "../utils/format";
+
 const COLORS = [
     "#b5f56a",
     "#8bb8ff",
@@ -29,12 +31,6 @@ function CategoryChart({ data = [] }) {
         (total, category) => total + category.value,
         0
     );
-
-    const formatCurrency = (value) =>
-        Number(value).toLocaleString("pt-BR", {
-            style: "currency",
-            currency: "BRL",
-        });
 
     return (
         <div className="category-chart-card">
