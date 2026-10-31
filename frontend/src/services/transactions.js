@@ -22,9 +22,10 @@ export function updateTransaction(id, transaction) {
     });
 }
 
-export function deleteTransaction(id) {
+export function deleteTransaction(id, { keepalive = false } = {}) {
     return apiRequest(`/transactions/${id}/`, {
         method: "DELETE",
+        keepalive,
         fallbackError: "Não foi possível excluir a transação.",
     });
 }

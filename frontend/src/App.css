@@ -1778,6 +1778,272 @@
 }
 
 
+/* ETAPA D: INTERAÇÕES */
+
+/* Aviso com ação ("Desfazer") e barra de tempo restante */
+
+.notification {
+    overflow: hidden;
+}
+
+.notification .notification-action {
+    padding: 6px 10px;
+    color: var(--accent);
+    border: 1px solid rgba(181, 245, 106, 0.35);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    transition: background-color 150ms ease, transform 120ms var(--ease-out);
+}
+
+.notification .notification-action:hover {
+    color: var(--accent);
+    background: rgba(181, 245, 106, 0.1);
+}
+
+.notification .notification-action:active {
+    transform: scale(0.96);
+}
+
+.notification-timer {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0.6;
+    transform-origin: left;
+    animation: notification-timer linear forwards;
+}
+
+@keyframes notification-timer {
+    from {
+        transform: scaleX(1);
+    }
+    to {
+        transform: scaleX(0);
+    }
+}
+
+
+/* Resumo do mês no Dashboard */
+
+.insight-banner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+    padding: 14px 18px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    animation: insight-in 300ms var(--ease-out);
+}
+
+.insight-banner p {
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.insight-banner strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.insight-icon {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: rgba(139, 184, 255, 0.12);
+    color: var(--info);
+}
+
+.insight-icon-skeleton {
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+.insight-banner.positive .insight-icon {
+    background: rgba(181, 245, 106, 0.12);
+    color: var(--accent);
+}
+
+.insight-banner.warning {
+    border-color: rgba(241, 124, 124, 0.35);
+}
+
+.insight-banner.warning .insight-icon {
+    background: rgba(241, 124, 124, 0.12);
+    color: var(--danger);
+}
+
+@keyframes insight-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+/* Formulário de transação: a cor acompanha o tipo escolhido */
+
+.transaction-form {
+    --type-color: var(--accent);
+    --type-tint: rgba(181, 245, 106, 0.1);
+}
+
+.transaction-form[data-type="EXPENSE"] {
+    --type-color: var(--danger);
+    --type-tint: rgba(241, 124, 124, 0.1);
+}
+
+.transaction-modal .transaction-form input:focus,
+.transaction-form .react-datepicker__input-container input:focus,
+.transaction-form .category-dropdown-trigger:hover,
+.transaction-form .category-dropdown-trigger.open {
+    border-color: var(--type-color);
+}
+
+.transaction-form .transaction-type-selector {
+    position: relative;
+}
+
+/* O indicador desliza entre Receita e Despesa em vez de "piscar" de um
+   botão para o outro: mostra que é uma escolha entre duas opções. */
+.type-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: calc(50% - 5px);
+    height: 100%;
+    background: var(--type-tint);
+    border: 1px solid var(--type-color);
+    border-radius: 10px;
+    transition:
+        transform 220ms var(--ease-out),
+        background-color 220ms ease,
+        border-color 220ms ease;
+}
+
+.transaction-form[data-type="EXPENSE"] .type-indicator {
+    transform: translateX(calc(100% + 10px));
+}
+
+.transaction-form .transaction-type-selector button {
+    position: relative;
+    background: transparent;
+    transition: color 220ms ease, transform 120ms var(--ease-out);
+}
+
+.transaction-form .transaction-type-selector button.selected {
+    color: var(--type-color);
+    border-color: transparent;
+}
+
+.transaction-form .transaction-type-selector button:active {
+    transform: scale(0.97);
+}
+
+.transaction-modal .transaction-form .amount-input {
+    min-height: 58px;
+    color: var(--type-color);
+    font-family: var(--font-heading);
+    font-size: 26px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    transition: color 220ms ease, border-color 150ms ease;
+}
+
+.transaction-modal .transaction-form .amount-input::placeholder {
+    color: var(--border);
+}
+
+
+/* Linha recém-salva ou restaurada pisca uma vez */
+
+.transaction-row.is-highlighted {
+    animation: row-highlight 1.6s var(--ease-out);
+}
+
+@keyframes row-highlight {
+    from {
+        background: rgba(181, 245, 106, 0.12);
+    }
+    to {
+        background: transparent;
+    }
+}
+
+
+/* Dica de atalho de teclado */
+
+.kbd-hint {
+    margin-left: 4px;
+    padding: 1px 6px;
+    border: 1px solid rgba(16, 21, 12, 0.3);
+    border-radius: 5px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    opacity: 0.6;
+}
+
+/* Sem teclado físico (toque), a dica não faz sentido. */
+@media (hover: none) {
+    .kbd-hint {
+        display: none;
+    }
+}
+
+
+/* Botões principais respondem ao toque */
+
+.primary-button:active,
+.secondary-button:active,
+.danger-button:active,
+.row-action:active,
+.period-arrow:active:not(:disabled) {
+    transform: scale(0.97);
+}
+
+
+/* Movimento reduzido: mantém cores e opacidade, remove deslocamentos */
+
+@media (prefers-reduced-motion: reduce) {
+    .insight-banner {
+        animation: none;
+    }
+
+    .type-indicator {
+        transition: background-color 220ms ease, border-color 220ms ease;
+    }
+
+    .notification-timer {
+        animation: none;
+        opacity: 0;
+    }
+
+    .primary-button:active,
+    .secondary-button:active,
+    .danger-button:active,
+    .row-action:active,
+    .period-arrow:active:not(:disabled),
+    .transaction-form .transaction-type-selector button:active {
+        transform: none;
+    }
+}
+
+
 /* CATEGORIA PROTEGIDA */
 
 .row-locked {

@@ -7,7 +7,7 @@ import "react-datepicker/dist/react-datepicker.css";
 
 import Modal from "../Modal";
 import Select from "../Select";
-import { formatDateToISO, parseISODate } from "../../utils/format";
+import { formatCurrency, formatDateToISO, parseISODate } from "../../utils/format";
 import {
     createTransaction,
     updateTransaction,
@@ -15,6 +15,15 @@ import {
 } from "../../services/transactions";
 
 const TRANSFER_CATEGORY_NAME = "Transferências";
+
+// O valor é guardado como dígitos em centavos ("125000" = R$ 1.250,00), como
+// nos apps de banco: cada número digitado entra pela direita. 10 dígitos é o
+// limite do campo no banco (max_digits=10, decimal_places=2).
+const MAX_AMOUNT_DIGITS = 10;
+
+function centsToNumber(digits) {
+    return digits ? Number(digits) / 100 : 0;
+}
 
 function findTransferCategory(categories) {
     return categories.find((category) => category.name === TRANSFER_CATEGORY_NAME);
@@ -26,7 +35,7 @@ function getInitialForm(transaction, categories) {
     if (transaction) {
         return {
             description: transaction.description,
-            amount: String(transaction.amount).replace(".", ","),
+            amount: String(Math.round(Number(transaction.amount) * 100)),
             type: transaction.type,
             date: transaction.date,
             category: transaction.category ? String(transaction.category) : "",
@@ -63,25 +72,21 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
         const errors = {};
 
         const description = formData.description.trim();
-        const amountText = formData.amount.trim().replace(",", ".");
-        const amount = Number(amountText);
 
         if (!description) {
-            errors.description = "Informe a descrição da transação.";
+            errors.description = formData.type === "INCOME"
+                ? "De onde veio esse dinheiro? Ex.: Salário, freela."
+                : "Com o que foi esse gasto? Ex.: Mercado, almoço.";
         } else if (description.length > 200) {
-            errors.description = "Use no máximo 200 caracteres.";
+            errors.description = "Tente resumir em até 200 caracteres.";
         }
 
-        if (!amountText) {
-            errors.amount = "Informe o valor da transação.";
-        } else if (!Number.isFinite(amount)) {
-            errors.amount = "Digite um valor numérico válido.";
-        } else if (amount <= 0) {
-            errors.amount = "O valor deve ser maior que zero.";
+        if (centsToNumber(formData.amount) <= 0) {
+            errors.amount = "Qual foi o valor? Digite os números.";
         }
 
         if (!formData.date) {
-            errors.date = "Informe a data da transação.";
+            errors.date = "Quando foi? Escolha uma data.";
         }
 
         setFieldErrors(errors);
@@ -142,7 +147,7 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
         setFormError("");
 
         const description = formData.description.trim();
-        const amount = Number(formData.amount.replace(",", "."));
+        const amount = centsToNumber(formData.amount);
 
         const transferCategory = findTransferCategory(categories);
 
@@ -183,6 +188,19 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
         }
     }
 
+    // O botão descreve exatamente o que vai acontecer.
+    function getSubmitLabel() {
+        if (saving) return "Salvando...";
+        if (isEditing) return "Salvar alterações";
+
+        const typeLabel = formData.type === "INCOME" ? "receita" : "despesa";
+        const amount = centsToNumber(formData.amount);
+
+        return amount > 0
+            ? `Adicionar ${typeLabel} de ${formatCurrency(amount)}`
+            : `Adicionar ${typeLabel}`;
+    }
+
     const categoryOptions = categories.map((category) => ({
         value: String(category.id),
         label: category.name,
@@ -198,11 +216,15 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
             }
             onClose={onClose}
         >
-            <form onSubmit={handleSubmit}>
-                <div className="transaction-type-selector">
+            {/* data-type muda a cor de destaque do formulário inteiro (CSS). */}
+            <form onSubmit={handleSubmit} data-type={formData.type} className="transaction-form" noValidate>
+                <div className="transaction-type-selector" role="group" aria-label="Tipo da transação">
+                    <span className="type-indicator" aria-hidden="true" />
+
                     <button
                         type="button"
-                        className={formData.type === "INCOME" ? "selected income" : ""}
+                        className={formData.type === "INCOME" ? "selected" : ""}
+                        aria-pressed={formData.type === "INCOME"}
                         onClick={() => setFormData({ ...formData, type: "INCOME" })}
                     >
                         Receita
@@ -210,7 +232,8 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
 
                     <button
                         type="button"
-                        className={formData.type === "EXPENSE" ? "selected expense" : ""}
+                        className={formData.type === "EXPENSE" ? "selected" : ""}
+                        aria-pressed={formData.type === "EXPENSE"}
                         onClick={() => setFormData({ ...formData, type: "EXPENSE" })}
                     >
                         Despesa
@@ -220,7 +243,11 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
                 <label>Descrição</label>
                 <input
                     type="text"
-                    placeholder="Ex.: Salário, almoço..."
+                    placeholder={
+                        formData.type === "INCOME"
+                            ? "Ex.: Salário, freela..."
+                            : "Ex.: Mercado, almoço..."
+                    }
                     maxLength={200}
                     value={formData.description}
                     className={fieldErrors.description ? "input-error" : ""}
@@ -239,45 +266,25 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
                     </span>
                 )}
 
-                <label>Valor (R$)</label>
+                <label>Valor</label>
                 <input
                     type="text"
-                    inputMode="decimal"
-                    placeholder="Digite apenas números (ex.: 250,00)"
-                    value={formData.amount}
-                    className={fieldErrors.amount ? "input-error" : ""}
+                    inputMode="numeric"
+                    placeholder="R$ 0,00"
+                    value={formData.amount ? formatCurrency(centsToNumber(formData.amount)) : ""}
+                    className={`amount-input ${fieldErrors.amount ? "input-error" : ""}`}
                     aria-invalid={Boolean(fieldErrors.amount)}
                     aria-describedby={fieldErrors.amount ? "amount-error" : undefined}
                     onChange={(event) => {
-                        const value = event.target.value;
+                        // Fica só com os dígitos: letras e símbolos nem entram.
+                        const digits = event.target.value
+                            .replace(/\D/g, "")
+                            .replace(/^0+/, "")
+                            .slice(0, MAX_AMOUNT_DIGITS);
 
-                        if (!/^\d*[.,]?\d*$/.test(value)) {
-                            setFieldErrors((previous) => ({
-                                ...previous,
-                                amount: "Não são permitidas letras ou caracteres. Digite apenas números.",
-                            }));
-
-                            setTimeout(() => {
-                                setFieldErrors((previous) => ({
-                                    ...previous,
-                                    amount: "",
-                                }));
-                            }, 3000);
-
-                            return;
-                        }
-
-                        setFormData((previous) => ({
-                            ...previous,
-                            amount: value,
-                        }));
-
-                        setFieldErrors((previous) => ({
-                            ...previous,
-                            amount: "",
-                        }));
+                        setFormData((previous) => ({ ...previous, amount: digits }));
+                        setFieldErrors((previous) => ({ ...previous, amount: "" }));
                     }}
-                    required
                 />
 
                 {fieldErrors.amount && (
@@ -415,11 +422,7 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
                         className="primary-button"
                         disabled={saving}
                     >
-                        {saving
-                            ? "Salvando..."
-                            : isEditing
-                                ? "Salvar alterações"
-                                : "Salvar transação"}
+                        {getSubmitLabel()}
                     </button>
                 </div>
             </form>

@@ -1,18 +1,24 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import Notification from "./Notification";
 import { ToastContext } from "../context/ToastContext";
 
 // Mostra um aviso por vez. Um aviso novo substitui o anterior; o id muda a
-// key do <Notification>, o que reinicia o temporizador de 4 segundos.
+// key do <Notification>, o que reinicia o temporizador.
 function ToastProvider({ children }) {
     const [toast, setToast] = useState(null);
+    const nextId = useRef(0);
 
-    const showToast = useCallback(({ type = "success", message }) => {
-        setToast({ id: Date.now(), type, message });
+    const showToast = useCallback(({ type = "success", message, action, duration = 4000 }) => {
+        nextId.current += 1;
+        setToast({ id: nextId.current, type, message, action, duration });
     }, []);
 
-    const closeToast = useCallback(() => setToast(null), []);
+    // Só fecha se ainda for o mesmo aviso. Sem isso, um clique em "Desfazer"
+    // (que já mostra um aviso novo) fecharia o aviso novo junto.
+    const closeToast = useCallback((id) => {
+        setToast((current) => (current?.id === id ? null : current));
+    }, []);
 
     return (
         <ToastContext.Provider value={showToast}>
@@ -21,8 +27,7 @@ function ToastProvider({ children }) {
             {toast && (
                 <Notification
                     key={toast.id}
-                    type={toast.type}
-                    message={toast.message}
+                    {...toast}
                     onClose={closeToast}
                 />
             )}

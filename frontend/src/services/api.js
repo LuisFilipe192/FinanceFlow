@@ -26,6 +26,8 @@ export async function apiRequest(path, {
     method = "GET",
     body,
     signal,
+    // keepalive deixa a requisição terminar mesmo se a aba for fechada.
+    keepalive = false,
     fallbackError = "Não foi possível completar a operação.",
 } = {}) {
     const headers = { Accept: "application/json" };
@@ -44,6 +46,7 @@ export async function apiRequest(path, {
         headers,
         body: body !== undefined ? JSON.stringify(body) : undefined,
         signal,
+        keepalive,
     });
 
     // 204 (exclusões) não tem corpo; outras respostas podem não ser JSON.

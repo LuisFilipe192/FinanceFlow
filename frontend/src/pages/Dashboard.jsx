@@ -6,12 +6,12 @@ import {
 } from "lucide-react";
 
 import SummaryCard from "../components/SummaryCard";
+import InsightBanner from "../components/InsightBanner";
 import PeriodPicker from "../components/PeriodPicker";
 
 import MonthlyChart from "../components/MonthlyChart";
 import CategoryChart from "../components/CategoryChart";
 
-import { formatCurrency } from "../utils/format";
 import { getDashboard } from "../services/dashboard";
 
 function Dashboard() {
@@ -21,6 +21,9 @@ function Dashboard() {
     const [year, setYear] = useState(today.getFullYear());
 
     const [summary, setSummary] = useState(null);
+    const [previousSummary, setPreviousSummary] = useState(null);
+    // Período a que os dados na tela pertencem (muda só quando a resposta chega).
+    const [loadedPeriod, setLoadedPeriod] = useState({ month, year });
     const [dailyMovement, setDailyMovement] = useState([]);
     const [expensesByCategory, setExpensesByCategory] = useState([]);
 
@@ -35,13 +38,21 @@ function Dashboard() {
                 setLoading(true);
                 setError(null);
 
-                const data = await getDashboard({
-                    month,
-                    year,
-                    signal: controller.signal,
-                });
+                // O mês anterior alimenta a comparação do resumo ("gastou 18% menos").
+                const previous = new Date(year, month - 2, 1);
+
+                const [data, previousData] = await Promise.all([
+                    getDashboard({ month, year, signal: controller.signal }),
+                    getDashboard({
+                        month: previous.getMonth() + 1,
+                        year: previous.getFullYear(),
+                        signal: controller.signal,
+                    }).catch(() => null),
+                ]);
 
                 setSummary(data.summary);
+                setPreviousSummary(previousData?.summary ?? null);
+                setLoadedPeriod({ month, year });
                 setDailyMovement(data.daily_movement);
                 setExpensesByCategory(data.expenses_by_category);
 
@@ -62,11 +73,9 @@ function Dashboard() {
         return () => controller.abort();
     }, [month, year]);
 
-    const displayValue = (value) => {
-        if (error || !summary) return "Indisponível";
-
-        return formatCurrency(value);
-    };
+    // null = indisponível. O card mostra o esqueleto só no primeiro carregamento;
+    // ao trocar de mês, o valor antigo "corre" até o novo.
+    const valueOf = (field) => (error || !summary ? null : Number(summary[field]));
 
     const balance = Number(summary?.balance ?? 0);
     const balanceTone = error || !summary || balance === 0
@@ -94,10 +103,19 @@ function Dashboard() {
                     />
                 </div>
 
+                <InsightBanner
+                    loading={loading}
+                    summary={error ? null : summary}
+                    previousSummary={previousSummary}
+                    expensesByCategory={expensesByCategory}
+                    month={loadedPeriod.month}
+                    year={loadedPeriod.year}
+                />
+
                 <div className="summary-grid">
                     <SummaryCard
                         title="Receitas"
-                        amount={displayValue(summary?.income)}
+                        value={valueOf("income")}
                         description="Total de entradas"
                         icon={<ArrowDownLeft />}
                         variant="income"
@@ -106,7 +124,7 @@ function Dashboard() {
 
                     <SummaryCard
                         title="Despesas"
-                        amount={displayValue(summary?.expenses)}
+                        value={valueOf("expenses")}
                         description="Total de saídas"
                         icon={<ArrowUpRight />}
                         variant="expense"
@@ -115,7 +133,7 @@ function Dashboard() {
 
                     <SummaryCard
                         title="Saldo do período"
-                        amount={displayValue(summary?.balance)}
+                        value={valueOf("balance")}
                         description={
                             balanceTone === "negative"
                                 ? "Você gastou mais do que recebeu"

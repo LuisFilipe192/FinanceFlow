@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Plus, Search } from "lucide-react";
 
-import ConfirmDialog from "../components/ConfirmDialog";
 import EmptyState from "../components/EmptyState";
 import { Skeleton, SkeletonRows } from "../components/Skeleton";
 import TransactionFormModal from "../components/transactions/TransactionFormModal";
@@ -30,6 +29,32 @@ const TYPE_FILTERS = [
     { value: "EXPENSE", label: "Despesas" },
 ];
 
+// Tempo para desfazer uma exclusão antes de ela ir para o servidor.
+const UNDO_DELAY = 5000;
+
+function isInCurrentPeriod(transaction) {
+    const { month, year } = getCurrentPeriod();
+    const [transactionYear, transactionMonth] = transaction.date.split("-").map(Number);
+
+    return transactionYear === year && transactionMonth === month;
+}
+
+// Soma (sign = 1) ou subtrai (sign = -1) uma transação do resumo do mês, para
+// os cards reagirem na hora, sem esperar o servidor.
+function applyToSummary(summary, transaction, sign) {
+    if (!isInCurrentPeriod(transaction)) return summary;
+
+    const amount = Number(transaction.amount) * sign;
+    const income = Number(summary.income) + (transaction.type === "INCOME" ? amount : 0);
+    const expenses = Number(summary.expenses) + (transaction.type === "EXPENSE" ? amount : 0);
+
+    return { income, expenses, balance: income - expenses };
+}
+
+function isTypingInField(target) {
+    return ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) || target.isContentEditable;
+}
+
 function Transactions() {
     const showToast = useToast();
 
@@ -50,9 +75,11 @@ function Transactions() {
     const [showForm, setShowForm] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState(null);
 
-    const [transactionToDelete, setTransactionToDelete] = useState(null);
-    const [deletingTransaction, setDeletingTransaction] = useState(false);
-    const [deleteError, setDeleteError] = useState("");
+    // Id da transação recém-salva: a linha dela pisca uma vez para você achá-la.
+    const [highlightId, setHighlightId] = useState(null);
+
+    // Exclusões aguardando os 5 segundos do "Desfazer": id -> { transaction, timer }.
+    const pendingDeletes = useRef(new Map());
 
     useEffect(() => {
         async function loadData() {
@@ -79,12 +106,66 @@ function Transactions() {
         loadData();
     }, []);
 
+    // Atalho: N abre uma nova transação (fora de campos de texto e de modais).
+    useEffect(() => {
+        function handleKeyDown(event) {
+            if (
+                event.key.toLowerCase() !== "n" ||
+                event.ctrlKey || event.metaKey || event.altKey ||
+                showForm ||
+                isTypingInField(event.target)
+            ) {
+                return;
+            }
+
+            event.preventDefault();
+            setEditingTransaction(null);
+            setShowForm(true);
+        }
+
+        document.addEventListener("keydown", handleKeyDown);
+
+        return () => document.removeEventListener("keydown", handleKeyDown);
+    }, [showForm]);
+
+    // Exclusões pendentes não podem se perder: se a aba fechar ou você trocar
+    // de página antes dos 5 segundos, elas vão para o servidor na hora.
+    useEffect(() => {
+        const pending = pendingDeletes.current;
+
+        function flushPendingDeletes() {
+            for (const { transaction, timer } of pending.values()) {
+                clearTimeout(timer);
+                deleteTransaction(transaction.id, { keepalive: true }).catch(console.error);
+            }
+
+            const hadPending = pending.size > 0;
+            pending.clear();
+
+            return hadPending;
+        }
+
+        window.addEventListener("beforeunload", flushPendingDeletes);
+
+        return () => {
+            window.removeEventListener("beforeunload", flushPendingDeletes);
+
+            // Troca de página: o aviso com "Desfazer" deixaria de funcionar,
+            // então ele é substituído por uma confirmação simples.
+            if (flushPendingDeletes()) {
+                showToast({ type: "success", message: "Transação excluída." });
+            }
+        };
+    }, [showToast]);
+
     async function refreshFinancialSummary() {
         try {
             const dashboardData = await getDashboard(getCurrentPeriod());
             setSummary(dashboardData.summary);
+            return dashboardData.summary;
         } catch (error) {
             console.error("Erro ao atualizar indicadores:", error);
+            return null;
         }
     }
 
@@ -103,7 +184,14 @@ function Transactions() {
         setEditingTransaction(null);
     }
 
+    function highlight(id) {
+        setHighlightId(id);
+        setTimeout(() => setHighlightId(null), 1600);
+    }
+
     async function handleTransactionSaved(savedTransaction, isEditing) {
+        const isFirstTransaction = !isEditing && transactions.length === 0;
+
         setTransactions((previous) =>
             isEditing
                 ? previous.map((transaction) =>
@@ -114,44 +202,82 @@ function Transactions() {
                 : [savedTransaction, ...previous]
         );
 
-        await refreshFinancialSummary();
+        const updatedSummary = await refreshFinancialSummary();
         closeForm();
+        highlight(savedTransaction.id);
+
+        const typeLabel = savedTransaction.type === "INCOME" ? "Receita" : "Despesa";
+        const balanceText = updatedSummary
+            ? ` Saldo do mês: ${formatCurrency(updatedSummary.balance)}.`
+            : "";
 
         showToast({
             type: "success",
-            message: isEditing ? "Transação atualizada." : "Transação registrada.",
+            message: isFirstTransaction
+                ? "Primeira transação registrada! Agora é só acompanhar."
+                : isEditing
+                    ? `Transação atualizada.${balanceText}`
+                    : `${typeLabel} de ${formatCurrency(savedTransaction.amount)} registrada.${balanceText}`,
         });
     }
 
-    function closeDeleteDialog() {
-        setTransactionToDelete(null);
-        setDeleteError("");
+    function restoreTransaction(transaction) {
+        setTransactions((previous) =>
+            previous.some((item) => item.id === transaction.id)
+                ? previous
+                : [...previous, transaction]
+        );
+        setSummary((previous) => applyToSummary(previous, transaction, 1));
     }
 
-    async function handleDeleteTransaction() {
-        if (!transactionToDelete) return;
+    async function commitDelete(transaction) {
+        pendingDeletes.current.delete(transaction.id);
 
         try {
-            setDeletingTransaction(true);
-            setDeleteError("");
-
-            await deleteTransaction(transactionToDelete.id);
-
-            setTransactions((previous) =>
-                previous.filter(
-                    (transaction) => transaction.id !== transactionToDelete.id
-                )
-            );
-
-            closeDeleteDialog();
-            showToast({ type: "success", message: "Transação excluída." });
+            await deleteTransaction(transaction.id);
             await refreshFinancialSummary();
         } catch (error) {
             console.error(error);
-            setDeleteError("Não foi possível excluir a transação. Tente novamente.");
-        } finally {
-            setDeletingTransaction(false);
+            restoreTransaction(transaction);
+            showToast({
+                type: "error",
+                message: `Não foi possível excluir "${transaction.description}". Ela voltou para a lista.`,
+            });
         }
+    }
+
+    function undoDelete(id) {
+        const pending = pendingDeletes.current.get(id);
+        if (!pending) return;
+
+        clearTimeout(pending.timer);
+        pendingDeletes.current.delete(id);
+        restoreTransaction(pending.transaction);
+        highlight(id);
+
+        showToast({ type: "success", message: "Pronto, a transação voltou." });
+    }
+
+    // A transação some da tela na hora; o servidor só é chamado depois de
+    // UNDO_DELAY. Até lá, "Desfazer" só precisa devolvê-la para a lista.
+    function handleDeleteTransaction(transaction) {
+        setTransactions((previous) =>
+            previous.filter((item) => item.id !== transaction.id)
+        );
+        setSummary((previous) => applyToSummary(previous, transaction, -1));
+
+        const timer = setTimeout(() => commitDelete(transaction), UNDO_DELAY);
+        pendingDeletes.current.set(transaction.id, { transaction, timer });
+
+        showToast({
+            type: "info",
+            message: `"${transaction.description}" excluída.`,
+            duration: UNDO_DELAY,
+            action: {
+                label: "Desfazer",
+                onClick: () => undoDelete(transaction.id),
+            },
+        });
     }
 
     const filteredTransactions = transactions.filter((transaction) =>
@@ -184,8 +310,8 @@ function Transactions() {
             return (
                 <EmptyState
                     icon={<ArrowLeftRight size={24} />}
-                    title="Nenhuma transação ainda"
-                    description="Registre sua primeira receita ou despesa para começar a acompanhar suas finanças."
+                    title="Tudo calmo por aqui"
+                    description="Que tal registrar seu primeiro gasto ou receita? Em segundos você já vê para onde vai o seu dinheiro."
                     action={
                         <button className="primary-button" onClick={openCreateForm}>
                             <Plus size={18} />
@@ -219,7 +345,8 @@ function Transactions() {
             <TransactionList
                 transactions={filteredTransactions}
                 onEdit={openEditForm}
-                onDelete={setTransactionToDelete}
+                onDelete={handleDeleteTransaction}
+                highlightId={highlightId}
             />
         );
     }
@@ -236,9 +363,14 @@ function Transactions() {
                         <p>Gerencie suas receitas e despesas.</p>
                     </div>
 
-                    <button className="primary-button" onClick={openCreateForm}>
+                    <button
+                        className="primary-button"
+                        onClick={openCreateForm}
+                        title="Atalho: tecla N"
+                    >
                         <Plus size={18} />
                         Nova transação
+                        <kbd className="kbd-hint">N</kbd>
                     </button>
                 </div>
 
@@ -336,19 +468,6 @@ function Transactions() {
                     }
                     onSaved={handleTransactionSaved}
                     onClose={closeForm}
-                />
-            )}
-
-            {transactionToDelete && (
-                <ConfirmDialog
-                    title="Excluir transação?"
-                    description={`Tem certeza de que deseja excluir "${transactionToDelete.description}"? Essa ação não poderá ser desfeita.`}
-                    confirmLabel="Excluir transação"
-                    loadingLabel="Excluindo..."
-                    loading={deletingTransaction}
-                    error={deleteError}
-                    onConfirm={handleDeleteTransaction}
-                    onCancel={closeDeleteDialog}
                 />
             )}
         </>

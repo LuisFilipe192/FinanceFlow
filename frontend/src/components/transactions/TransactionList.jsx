@@ -43,7 +43,7 @@ function getDayTotals(items) {
     );
 }
 
-function TransactionList({ transactions, onEdit, onDelete }) {
+function TransactionList({ transactions, onEdit, onDelete, highlightId }) {
     const groups = groupByDay(transactions);
 
     return (
@@ -80,7 +80,12 @@ function TransactionList({ transactions, onEdit, onDelete }) {
                             const variant = isIncome ? "income" : "expense";
 
                             return (
-                                <div className="transaction-row" key={transaction.id}>
+                                <div
+                                    className={`transaction-row ${
+                                        transaction.id === highlightId ? "is-highlighted" : ""
+                                    }`}
+                                    key={transaction.id}
+                                >
                                     <div className={`transaction-icon ${variant}`}>
                                         {isIncome ? (
                                             <ArrowDownLeft size={20} />

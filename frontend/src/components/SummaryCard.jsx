@@ -1,7 +1,13 @@
 import { Skeleton } from "./Skeleton";
+import { useCountUp } from "../hooks/useCountUp";
+import { formatCurrency } from "../utils/format";
 
+// value: número (ou null quando indisponível). Ao trocar de período,
+// o valor "corre" até o novo número em vez de trocar de repente.
 // tone: "positive" ou "negative" pinta o valor (usado no saldo).
-function SummaryCard({ title, amount, description, icon, variant, tone, loading = false }) {
+function SummaryCard({ title, value, description, icon, variant, tone, loading = false }) {
+    const animatedValue = useCountUp(value);
+
     return (
         <article className={`summary-card ${variant}`}>
             <div className="summary-card-top">
@@ -9,10 +15,12 @@ function SummaryCard({ title, amount, description, icon, variant, tone, loading 
                 {icon}
             </div>
 
-            {loading ? (
+            {loading && value == null ? (
                 <Skeleton width="60%" height={30} className="summary-card-skeleton" />
             ) : (
-                <h2 className={tone || undefined}>{amount}</h2>
+                <h2 className={tone || undefined}>
+                    {animatedValue == null ? "Indisponível" : formatCurrency(animatedValue)}
+                </h2>
             )}
 
             <p>{description}</p>

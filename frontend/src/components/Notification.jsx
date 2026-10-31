@@ -1,14 +1,15 @@
 import { useEffect } from "react";
 import { CheckCircle, AlertCircle, Info, X } from "lucide-react";
 
-function Notification({ type = "success", message, onClose }) {
+// action: { label, onClick } opcional, por exemplo "Desfazer".
+function Notification({ id, type = "success", message, action, duration = 4000, onClose }) {
     useEffect(() => {
         const timer = setTimeout(() => {
-            onClose();
-        }, 4000);
+            onClose(id);
+        }, duration);
 
         return () => clearTimeout(timer);
-    }, [onClose]);
+    }, [id, duration, onClose]);
 
     const icons = {
         success: CheckCircle,
@@ -27,9 +28,31 @@ function Notification({ type = "success", message, onClose }) {
 
             <span>{message}</span>
 
-            <button type="button" aria-label="Fechar aviso" onClick={onClose}>
+            {action && (
+                <button
+                    type="button"
+                    className="notification-action"
+                    onClick={() => {
+                        action.onClick();
+                        onClose(id);
+                    }}
+                >
+                    {action.label}
+                </button>
+            )}
+
+            <button type="button" aria-label="Fechar aviso" onClick={() => onClose(id)}>
                 <X size={18} />
             </button>
+
+            {/* Barra que esvazia: mostra quanto tempo falta para o aviso sumir. */}
+            {action && (
+                <span
+                    className="notification-timer"
+                    style={{ animationDuration: `${duration}ms` }}
+                    aria-hidden="true"
+                />
+            )}
         </div>
     );
 }
