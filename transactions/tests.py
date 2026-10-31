@@ -216,3 +216,36 @@ class RegisterIntegrityErrorTests(TestCase):
                 self.client.post(
                     self.url, self.payload, content_type="application/json"
                 )
+
+
+class CategoryNameValidationTests(TestCase):
+
+    url = "/api/categories/"
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="usuario1",
+            password="teste123"
+        )
+        self.client.force_login(self.user)
+
+    def create(self, name):
+        return self.client.post(
+            self.url, {"name": name}, content_type="application/json"
+        )
+
+    def test_accepts_accents_and_spaces(self):
+        for name in ["Alimentação", "Contas da casa", "Saúde"]:
+            with self.subTest(name=name):
+                self.assertEqual(self.create(name).status_code, 201)
+
+    def test_collapses_repeated_spaces(self):
+        response = self.create("  Lazer   e  viagens ")
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["name"], "Lazer e viagens")
+
+    def test_rejects_digits_and_symbols(self):
+        for name in ["Casa1", "Casa_nova", "Casa!", "   "]:
+            with self.subTest(name=name):
+                self.assertEqual(self.create(name).status_code, 400)

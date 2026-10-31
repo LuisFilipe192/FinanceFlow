@@ -99,14 +99,16 @@ function Transactions() {
     }
 
     async function handleCreateCategory() {
-        const name = newCategoryName.trim();
-        if (!/^[\p{L}\s]+$/u.test(name)) {
-            setCategoryError("Use apenas letras e espaços.");
-            return;
-        }
+        // Mesma regra do backend: letras (com acentos) separadas por um espaço.
+        const name = newCategoryName.trim().replace(/\s+/g, " ");
 
         if (!name) {
             setCategoryError("Informe o nome da categoria.");
+            return;
+        }
+
+        if (!/^\p{L}+(?: \p{L}+)*$/u.test(name)) {
+            setCategoryError("Use apenas letras e espaços.");
             return;
         }
 
