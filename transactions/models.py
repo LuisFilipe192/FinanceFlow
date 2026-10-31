@@ -17,9 +17,12 @@ class Transaction(models.Model):
 
     date = models.DateField(default=timezone.localdate)
 
+    # RESTRICT (e não PROTECT): continua impedindo apagar sozinha uma
+    # categoria que ainda tem transações, mas permite quando as duas são
+    # apagadas juntas pela cascata do usuário (exclusão de conta).
     category = models.ForeignKey(
         "Category",
-        on_delete=models.PROTECT,
+        on_delete=models.RESTRICT,
         related_name="transactions",
         null=True,
         blank=True

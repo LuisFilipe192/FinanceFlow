@@ -6,6 +6,7 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import UserManager
 from django.db import IntegrityError
+from django.db.models import RestrictedError
 
 from transactions.models import Transaction, Category
 from transactions.services.dashboard import (
@@ -520,6 +521,35 @@ class TransactionAmountValidationTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.transaction.refresh_from_db()
         self.assertEqual(self.transaction.amount, Decimal("50.00"))
+
+
+class CategoryDeletionRuleTests(TestCase):
+    """Transaction.category usa on_delete=RESTRICT."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="ana", password="teste123")
+        self.category = Category.objects.create(name="Mercado", user=self.user)
+        self.transaction = Transaction.objects.create(
+            description="Compra",
+            amount=Decimal("50.00"),
+            type=Transaction.Type.EXPENSE,
+            date=date(2026, 10, 10),
+            category=self.category,
+            user=self.user,
+        )
+
+    def test_category_with_transactions_cannot_be_deleted_alone(self):
+        with self.assertRaises(RestrictedError):
+            self.category.delete()
+
+        self.assertTrue(Transaction.objects.filter(id=self.transaction.id).exists())
+
+    def test_deleting_user_removes_transactions_and_categories(self):
+        # Com PROTECT isto levantava ProtectedError (achado pelos testes E2E).
+        self.user.delete()
+
+        self.assertFalse(Transaction.objects.filter(id=self.transaction.id).exists())
+        self.assertFalse(Category.objects.filter(id=self.category.id).exists())
 
 
 class AnonymousAccessTests(TestCase):
