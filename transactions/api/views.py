@@ -113,6 +113,39 @@ def transactions_api(request):
         status=status.HTTP_400_BAD_REQUEST
     )
 
+# Categoria padrão: recebe as transações de categorias excluídas. Ela é
+# localizada pelo nome, por isso não pode ser renomeada nem excluída.
+DEFAULT_CATEGORY_NAME = "Transferências"
+
+
+def _clean_category_name(raw_name, user, exclude_id=None):
+    """Normaliza e valida o nome de uma categoria. Retorna (nome, erro)."""
+    # Junta espaços repetidos: "Contas   da casa" vira "Contas da casa".
+    name = " ".join(raw_name.split()) if isinstance(raw_name, str) else ""
+
+    if not name:
+        return None, "Informe o nome da categoria."
+
+    if len(name) > 100:
+        return None, "Use no máximo 100 caracteres."
+
+    # [^\W\d_] = qualquer letra Unicode (inclui acentos e ç), sem dígitos nem "_".
+    if not re.fullmatch(r"[^\W\d_]+(?: [^\W\d_]+)*", name):
+        return None, "Use apenas letras e espaços."
+
+    duplicates = Category.objects.filter(user=user, name__iexact=name)
+
+    # Na edição, a própria categoria não conta como duplicada
+    # (permite trocar "lazer" por "Lazer").
+    if exclude_id is not None:
+        duplicates = duplicates.exclude(id=exclude_id)
+
+    if duplicates.exists():
+        return None, "Essa categoria já está cadastrada."
+
+    return name, None
+
+
 @ensure_csrf_cookie
 @api_view(["GET", "POST", "DELETE"])
 @permission_classes([IsAuthenticated])
@@ -124,7 +157,7 @@ def categories_api(request):
 
         Category.objects.get_or_create(
             user=request.user,
-            name="Transferências"
+            name=DEFAULT_CATEGORY_NAME
         )
 
         data = [
@@ -148,10 +181,16 @@ def categories_api(request):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        if category.name == DEFAULT_CATEGORY_NAME:
+            return Response(
+                {"error": "A categoria Transferências é padrão e não pode ser excluída."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         with transaction.atomic():
             transfer_category, created = Category.objects.get_or_create(
                 user=request.user,
-                name="Transferências"
+                name=DEFAULT_CATEGORY_NAME
             )
 
             Transaction.objects.filter(
@@ -163,36 +202,11 @@ def categories_api(request):
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    # Junta espaços repetidos: "Contas   da casa" vira "Contas da casa".
-    name = " ".join(str(request.data.get("name", "")).split())
+    name, error = _clean_category_name(request.data.get("name"), request.user)
 
-    if not name:
+    if error:
         return Response(
-            {"name": "Informe o nome da categoria."},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    if len(name) > 100:
-        return Response(
-            {"name": "Use no máximo 100 caracteres."},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    # [^\W\d_] = qualquer letra Unicode (inclui acentos e ç), sem dígitos nem "_".
-    if not re.fullmatch(r"[^\W\d_]+(?: [^\W\d_]+)*", name):
-        return Response(
-            {"name": "Use apenas letras e espaços."},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    already_exists = Category.objects.filter(
-        user=request.user,
-        name__iexact=name
-    ).exists()
-
-    if already_exists:
-        return Response(
-            {"name": "Essa categoria já está cadastrada."},
+            {"name": error},
             status=status.HTTP_400_BAD_REQUEST
         )
 
@@ -205,6 +219,43 @@ def categories_api(request):
         {"id": category.id, "name": category.name},
         status=status.HTTP_201_CREATED
     )
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def category_detail_api(request, pk):
+    try:
+        category = Category.objects.get(
+            id=pk,
+            user=request.user
+        )
+    except Category.DoesNotExist:
+        return Response(
+            {"error": "Categoria não encontrada."},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    if category.name == DEFAULT_CATEGORY_NAME:
+        return Response(
+            {"name": "A categoria Transferências é padrão e não pode ser renomeada."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    name, error = _clean_category_name(
+        request.data.get("name"),
+        request.user,
+        exclude_id=category.id
+    )
+
+    if error:
+        return Response(
+            {"name": error},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    category.name = name
+    category.save(update_fields=["name"])
+
+    return Response({"id": category.id, "name": category.name})
 
 @api_view(["PATCH", "DELETE"])
 @permission_classes([IsAuthenticated])

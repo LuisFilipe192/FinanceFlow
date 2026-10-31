@@ -249,3 +249,89 @@ class CategoryNameValidationTests(TestCase):
         for name in ["Casa1", "Casa_nova", "Casa!", "   "]:
             with self.subTest(name=name):
                 self.assertEqual(self.create(name).status_code, 400)
+
+    def test_rejects_missing_name(self):
+        response = self.client.post(
+            self.url, {"name": None}, content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+
+class CategoryEditTests(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="usuario1",
+            password="teste123"
+        )
+        self.other_user = User.objects.create_user(
+            username="usuario2",
+            password="teste123"
+        )
+        self.client.force_login(self.user)
+
+        self.category = Category.objects.create(name="Lazer", user=self.user)
+        Category.objects.create(name="Mercado", user=self.user)
+
+    def rename(self, category, name):
+        return self.client.patch(
+            f"/api/categories/{category.id}/",
+            {"name": name},
+            content_type="application/json",
+        )
+
+    def test_rename_category(self):
+        response = self.rename(self.category, "  Viagens   e passeios ")
+
+        self.assertEqual(response.status_code, 200)
+        self.category.refresh_from_db()
+        self.assertEqual(self.category.name, "Viagens e passeios")
+
+    def test_rename_keeps_transactions_linked(self):
+        transaction = Transaction.objects.create(
+            description="Cinema",
+            amount=Decimal("40.00"),
+            type=Transaction.Type.EXPENSE,
+            category=self.category,
+            user=self.user,
+        )
+
+        self.rename(self.category, "Cultura")
+
+        transaction.refresh_from_db()
+        self.assertEqual(transaction.category.name, "Cultura")
+
+    def test_rename_only_changing_case(self):
+        response = self.rename(self.category, "LAZER")
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_rename_to_existing_name_is_rejected(self):
+        response = self.rename(self.category, "mercado")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("name", response.json())
+
+    def test_cannot_rename_other_users_category(self):
+        other_category = Category.objects.create(name="Saúde", user=self.other_user)
+
+        response = self.rename(other_category, "Invadida")
+
+        self.assertEqual(response.status_code, 404)
+        other_category.refresh_from_db()
+        self.assertEqual(other_category.name, "Saúde")
+
+    def test_default_category_cannot_be_renamed_or_deleted(self):
+        default = Category.objects.create(name="Transferências", user=self.user)
+
+        self.assertEqual(self.rename(default, "Outra").status_code, 400)
+
+        response = self.client.delete(
+            "/api/categories/",
+            {"id": default.id},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(Category.objects.filter(id=default.id).exists())
