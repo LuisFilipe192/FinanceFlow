@@ -9,7 +9,7 @@ import { useAuth } from "../../context/AuthContext";
 // Lembrete de segurança: isto só decide o que MOSTRAR. Quem protege os dados
 // de verdade é o Django, que recusa qualquer requisição sem sessão válida.
 function RequireAuth({ children }) {
-    const { status, refreshSession } = useAuth();
+    const { status, signedOutByUser, refreshSession } = useAuth();
     const location = useLocation();
 
     if (status === "loading" || status === "error") {
@@ -17,7 +17,15 @@ function RequireAuth({ children }) {
     }
 
     if (status === "anonymous") {
-        return <Navigate to="/login" replace state={{ from: location }} />;
+        // Clicou em "Sair": login limpo. Sessão perdida: guarda a página
+        // para voltar a ela depois de entrar.
+        return (
+            <Navigate
+                to="/login"
+                replace
+                state={signedOutByUser ? undefined : { from: location }}
+            />
+        );
     }
 
     return children;

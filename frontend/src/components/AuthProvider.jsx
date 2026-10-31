@@ -7,7 +7,7 @@ import {
     register as registerRequest,
     logout as logoutRequest,
 } from "../services/auth";
-import { SESSION_CHECK_EVENT } from "../services/api";
+import { BEFORE_LOGOUT_EVENT, SESSION_CHECK_EVENT } from "../services/api";
 
 // Guarda quem está logado e oferece login, cadastro e logout para o app todo.
 // A fonte da verdade é a sessão do Django: ao abrir (ou recarregar) a página,
@@ -15,6 +15,9 @@ import { SESSION_CHECK_EVENT } from "../services/api";
 function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [status, setStatus] = useState("loading");
+    // true quando a pessoa clicou em "Sair". Diferencia de sessão expirada:
+    // nesse caso o login seguinte começa do início, não da última página.
+    const [signedOutByUser, setSignedOutByUser] = useState(false);
 
     const applySession = useCallback((session) => {
         setUser(session.authenticated ? session.user : null);
@@ -72,6 +75,7 @@ function AuthProvider({ children }) {
     const login = useCallback(async (credentials) => {
         const data = await loginRequest(credentials);
 
+        setSignedOutByUser(false);
         setUser(data.user);
         setStatus("authenticated");
 
@@ -81,6 +85,7 @@ function AuthProvider({ children }) {
     const register = useCallback(async (fields) => {
         const data = await registerRequest(fields);
 
+        setSignedOutByUser(false);
         setUser(data.user);
         setStatus("authenticated");
 
@@ -88,8 +93,19 @@ function AuthProvider({ children }) {
     }, []);
 
     const logout = useCallback(async () => {
+        // Antes de encerrar a sessão, avisa quem tem trabalho pendente
+        // (ex.: exclusões esperando o "Desfazer") e espera terminar. Depois
+        // do logout o Django recusaria essas requisições.
+        const pendingWork = [];
+
+        window.dispatchEvent(new CustomEvent(BEFORE_LOGOUT_EVENT, {
+            detail: { waitFor: (promise) => pendingWork.push(promise) },
+        }));
+
+        await Promise.allSettled(pendingWork);
         await logoutRequest();
 
+        setSignedOutByUser(true);
         setUser(null);
         setStatus("anonymous");
     }, []);
@@ -97,8 +113,8 @@ function AuthProvider({ children }) {
     // useMemo: o objeto só muda quando user ou status mudam. Sem isso, todo
     // componente que usa useAuth renderizaria de novo a cada render daqui.
     const value = useMemo(
-        () => ({ user, status, login, register, logout, refreshSession }),
-        [user, status, login, register, logout, refreshSession]
+        () => ({ user, status, signedOutByUser, login, register, logout, refreshSession }),
+        [user, status, signedOutByUser, login, register, logout, refreshSession]
     );
 
     return (

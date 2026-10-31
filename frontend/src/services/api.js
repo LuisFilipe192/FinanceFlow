@@ -6,6 +6,9 @@ const SESSION_ERROR = "Sessão expirada ou usuário não autenticado.";
 
 export const SESSION_CHECK_EVENT = "financeflow:session-check";
 
+// Disparado pelo AuthProvider logo antes do logout (veja logout()).
+export const BEFORE_LOGOUT_EVENT = "financeflow:before-logout";
+
 export function getCsrfToken() {
     const cookie = document.cookie
         .split("; ")

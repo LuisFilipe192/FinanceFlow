@@ -1,24 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { login, money } from "./support/helpers.js";
-
-// Os testes deste arquivo rodam em ordem e o usuário é recriado do zero a
-// cada execução (global-setup), então dá para contar com um histórico vazio.
-
-// Cria uma despesa pelo formulário e devolve a linha dela na lista.
-async function createExpense(page, description, digits = "12550") {
-    await page.getByRole("button", { name: /Nova transação/ }).click();
-
-    const dialog = page.getByRole("dialog", { name: "Nova transação" });
-    await dialog.getByRole("button", { name: "Despesa" }).click();
-    await dialog.getByLabel("Descrição").fill(description);
-    await dialog.getByLabel("Valor").fill(digits);
-    await dialog.getByRole("button", { name: /Adicionar despesa/ }).click();
-
-    await expect(dialog).toBeHidden();
-
-    return page.locator(".transaction-row", { hasText: description });
-}
+import { createExpense, login, money } from "./support/helpers.js";
 
 test.describe("Transações", () => {
     test.beforeEach(async ({ page }) => {

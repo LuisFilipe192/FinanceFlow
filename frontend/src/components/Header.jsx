@@ -1,6 +1,8 @@
 
 import { useLocation } from "react-router-dom";
 
+import UserMenu from "./UserMenu";
+
 function Header() {
     const location = useLocation();
 
@@ -39,10 +41,8 @@ function Header() {
                 <p>{currentPage.description}</p>
             </div>
 
-            {/* Busca e notificações voltam quando existirem de verdade.
-                O avatar passa a usar o usuário logado na etapa 7. */}
             <div className="header-actions">
-                <div className="user-avatar">LF</div>
+                <UserMenu />
             </div>
         </header>
     );

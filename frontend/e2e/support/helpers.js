@@ -16,6 +16,22 @@ export async function fillLogin(page, { username, password }) {
     await page.getByRole("button", { name: "Entrar", exact: true }).click();
 }
 
+// Cria uma despesa pelo formulário (na página de Transações) e devolve a
+// linha dela na lista.
+export async function createExpense(page, description, digits = "12550") {
+    await page.getByRole("button", { name: /Nova transação/ }).click();
+
+    const dialog = page.getByRole("dialog", { name: "Nova transação" });
+    await dialog.getByRole("button", { name: "Despesa" }).click();
+    await dialog.getByLabel("Descrição").fill(description);
+    await dialog.getByLabel("Valor").fill(digits);
+    await dialog.getByRole("button", { name: /Adicionar despesa/ }).click();
+
+    await expect(dialog).toBeHidden();
+
+    return page.locator(".transaction-row", { hasText: description });
+}
+
 // Nomes de categoria só aceitam letras, então o sufixo único também.
 export function uniqueLetters(length = 6) {
     return Array.from({ length }, () =>

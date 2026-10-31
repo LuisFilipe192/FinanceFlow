@@ -7,6 +7,7 @@ import TransactionFormModal from "../components/transactions/TransactionFormModa
 import TransactionList from "../components/transactions/TransactionList";
 import { useToast } from "../context/ToastContext";
 import { formatCurrency } from "../utils/format";
+import { BEFORE_LOGOUT_EVENT } from "../services/api";
 import { getDashboard } from "../services/dashboard";
 import {
     getTransactions,
@@ -133,26 +134,36 @@ function Transactions() {
     useEffect(() => {
         const pending = pendingDeletes.current;
 
+        // Envia na hora todas as exclusões pendentes e devolve as promessas.
         function flushPendingDeletes() {
-            for (const { transaction, timer } of pending.values()) {
+            const requests = [...pending.values()].map(({ transaction, timer }) => {
                 clearTimeout(timer);
-                deleteTransaction(transaction.id, { keepalive: true }).catch(console.error);
-            }
+                return deleteTransaction(transaction.id, { keepalive: true })
+                    .catch(console.error);
+            });
 
-            const hadPending = pending.size > 0;
             pending.clear();
 
-            return hadPending;
+            return requests;
+        }
+
+        // Logout: o AuthProvider espera estas exclusões antes de encerrar a sessão.
+        function handleBeforeLogout(event) {
+            for (const request of flushPendingDeletes()) {
+                event.detail.waitFor(request);
+            }
         }
 
         window.addEventListener("beforeunload", flushPendingDeletes);
+        window.addEventListener(BEFORE_LOGOUT_EVENT, handleBeforeLogout);
 
         return () => {
             window.removeEventListener("beforeunload", flushPendingDeletes);
+            window.removeEventListener(BEFORE_LOGOUT_EVENT, handleBeforeLogout);
 
             // Troca de página: o aviso com "Desfazer" deixaria de funcionar,
             // então ele é substituído por uma confirmação simples.
-            if (flushPendingDeletes()) {
+            if (flushPendingDeletes().length > 0) {
                 showToast({ type: "success", message: "Transação excluída." });
             }
         };
