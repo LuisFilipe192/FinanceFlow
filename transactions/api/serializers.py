@@ -94,6 +94,17 @@ class TransactionSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "category_name"]
 
+    # Receita ou despesa é definido por "type"; o valor é sempre positivo.
+    # A tela já impede valor zero ou negativo, mas uma requisição direta à
+    # API passaria por cima dela: a regra precisa existir aqui.
+    def validate_amount(self, amount):
+        if amount <= 0:
+            raise serializers.ValidationError(
+                "O valor deve ser maior que zero."
+            )
+
+        return amount
+
     def validate_category(self, category):
         if category is not None:
             user = self.context["request"].user

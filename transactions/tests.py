@@ -473,6 +473,55 @@ class UserIsolationTests(TestCase):
         self.assertEqual(created.user, self.ana)
 
 
+class TransactionAmountValidationTests(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="ana", password="teste123")
+        self.client.force_login(self.user)
+
+        self.transaction = Transaction.objects.create(
+            description="Mercado",
+            amount=Decimal("50.00"),
+            type=Transaction.Type.EXPENSE,
+            date=date(2026, 10, 10),
+            user=self.user,
+        )
+
+    def create(self, amount):
+        return self.client.post(
+            "/api/transactions/",
+            {
+                "description": "Teste",
+                "amount": amount,
+                "type": "EXPENSE",
+                "date": "2026-10-15",
+            },
+            content_type="application/json",
+        )
+
+    def test_rejects_zero_and_negative_amounts(self):
+        for amount in ["0", "0.00", "-50.00"]:
+            with self.subTest(amount=amount):
+                response = self.create(amount)
+
+                self.assertEqual(response.status_code, 400)
+                self.assertIn("amount", response.json())
+
+    def test_accepts_smallest_positive_amount(self):
+        self.assertEqual(self.create("0.01").status_code, 201)
+
+    def test_edit_cannot_set_negative_amount(self):
+        response = self.client.patch(
+            f"/api/transactions/{self.transaction.id}/",
+            {"amount": "-10.00"},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.transaction.refresh_from_db()
+        self.assertEqual(self.transaction.amount, Decimal("50.00"))
+
+
 class AnonymousAccessTests(TestCase):
     """Sem login, nenhuma rota de dados responde com conteúdo."""
 
