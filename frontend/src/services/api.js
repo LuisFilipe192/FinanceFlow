@@ -4,7 +4,7 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
 
 const SESSION_ERROR = "Sessão expirada ou usuário não autenticado.";
 
-function getCsrfToken() {
+export function getCsrfToken() {
     const cookie = document.cookie
         .split("; ")
         .find((row) => row.startsWith("csrftoken="));
@@ -12,7 +12,13 @@ function getCsrfToken() {
     return cookie ? cookie.split("=")[1] : "";
 }
 
-function getErrorMessage(status, data, fallbackError) {
+function getErrorMessage(status, data, fallbackError, useServerMessage) {
+    // Nos endpoints de autenticação o próprio Django escreve a mensagem
+    // (ex.: 401 = "Usuário ou senha inválidos."), então ela é usada como veio.
+    if (useServerMessage) {
+        return data?.detail || data?.error || fallbackError;
+    }
+
     if (status === 401 || status === 403) {
         return SESSION_ERROR;
     }
@@ -29,6 +35,7 @@ export async function apiRequest(path, {
     // keepalive deixa a requisição terminar mesmo se a aba for fechada.
     keepalive = false,
     fallbackError = "Não foi possível completar a operação.",
+    useServerMessage = false,
 } = {}) {
     const headers = { Accept: "application/json" };
 
@@ -56,7 +63,7 @@ export async function apiRequest(path, {
 
     if (!response.ok) {
         const error = new Error(
-            getErrorMessage(response.status, data, fallbackError)
+            getErrorMessage(response.status, data, fallbackError, useServerMessage)
         );
         error.status = response.status;
         error.data = data;
