@@ -163,7 +163,8 @@ def categories_api(request):
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    name = request.data.get("name", "").strip()
+    # Junta espaços repetidos: "Contas   da casa" vira "Contas da casa".
+    name = " ".join(str(request.data.get("name", "")).split())
 
     if not name:
         return Response(
@@ -177,9 +178,10 @@ def categories_api(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    if not re.fullmatch(r"[a-zA-Z]+", name):
+    # [^\W\d_] = qualquer letra Unicode (inclui acentos e ç), sem dígitos nem "_".
+    if not re.fullmatch(r"[^\W\d_]+(?: [^\W\d_]+)*", name):
         return Response(
-            {"name": "Use apenas letras, sem espaços, números ou caracteres especiais."},
+            {"name": "Use apenas letras e espaços."},
             status=status.HTTP_400_BAD_REQUEST
         )
 

@@ -43,17 +43,16 @@ function Categories() {
     async function handleCreateCategory(event) {
         event.preventDefault();
 
-        const name = newCategoryName.trim();
+        // Mesma regra do backend: letras (com acentos) separadas por um espaço.
+        const name = newCategoryName.trim().replace(/\s+/g, " ");
 
         if (!name) {
             setCategoryError("Informe o nome da categoria.");
             return;
         }
 
-        if (!/^[\p{L}]+$/u.test(name)) {
-            setCategoryError(
-                "Use apenas letras, sem espaços, números ou caracteres especiais."
-            );
+        if (!/^\p{L}+(?: \p{L}+)*$/u.test(name)) {
+            setCategoryError("Use apenas letras e espaços.");
             return;
         }
 
