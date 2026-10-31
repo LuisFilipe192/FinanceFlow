@@ -65,3 +65,20 @@ export async function logout() {
         useServerMessage: true,
     });
 }
+
+export function getAccountSummary({ signal } = {}) {
+    return apiRequest("/auth/account/", {
+        signal,
+        fallbackError: "Não foi possível carregar os dados da sua conta.",
+    });
+}
+
+export async function deleteAccount(password) {
+    await ensureCsrfCookie();
+
+    return apiRequest("/auth/account/", {
+        method: "DELETE",
+        body: { password },
+        fallbackError: "Não foi possível excluir sua conta. Tente novamente.",
+    });
+}
