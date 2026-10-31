@@ -1,8 +1,11 @@
 from decimal import Decimal
 from datetime import date
+from unittest.mock import patch
 
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import UserManager
+from django.db import IntegrityError
 
 from transactions.models import Transaction, Category
 from transactions.services.dashboard import (
@@ -182,3 +185,34 @@ class DashboardServiceTests(TestCase):
         self.assertEqual(len(expenses), 1)
         self.assertEqual(expenses[0]["category__name"], "Alimentação")
         self.assertEqual(expenses[0]["total"], Decimal("35.00"))
+
+
+class RegisterIntegrityErrorTests(TestCase):
+
+    url = "/api/auth/register/"
+    payload = {
+        "username": "novousuario",
+        "password": "SenhaForte!2026",
+        "password_confirmation": "SenhaForte!2026",
+    }
+
+    def test_race_on_username_returns_400(self):
+        # Simula outro cadastro com o mesmo nome entre a validação e o INSERT:
+        # o INSERT falha e, ao conferir de novo, o nome já existe.
+        duplicate = IntegrityError("UNIQUE constraint failed: auth_user.username")
+
+        with patch.object(UserManager, "create_user", side_effect=duplicate), \
+                patch("django.db.models.query.QuerySet.exists", side_effect=[False, True]):
+            response = self.client.post(
+                self.url, self.payload, content_type="application/json"
+            )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("username", response.json()["errors"])
+
+    def test_unexpected_integrity_error_is_not_hidden(self):
+        with patch.object(UserManager, "create_user", side_effect=IntegrityError("outra falha")):
+            with self.assertRaises(IntegrityError):
+                self.client.post(
+                    self.url, self.payload, content_type="application/json"
+                )
