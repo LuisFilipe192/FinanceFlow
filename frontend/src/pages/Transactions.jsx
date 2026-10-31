@@ -18,6 +18,26 @@ import DatePicker from "react-datepicker";
 import { ptBR } from "date-fns/locale";
 import "react-datepicker/dist/react-datepicker.css";
 
+// Usa o fuso local do navegador. toISOString() converte para UTC e,
+// no Brasil, depois das 21h já retornaria a data do dia seguinte.
+function formatDateToISO(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
+function getEmptyForm() {
+    return {
+        description: "",
+        amount: "",
+        type: "INCOME",
+        date: formatDateToISO(new Date()),
+        category: "",
+    };
+}
+
 function Transactions() {
     const [transactions, setTransactions] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -32,15 +52,16 @@ function Transactions() {
     const [editingTransaction, setEditingTransaction] = useState(null);
     const [transactionToDelete, setTransactionToDelete] = useState(null);
     const [deletingTransaction, setDeletingTransaction] = useState(false);
+    const [deleteError, setDeleteError] = useState("");
     const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
     const categoryDropdownRef = useRef(null);
 
-    const [formData, setFormData] = useState({
-        description: "",
-        amount: "",
-        type: "INCOME",
-        date: new Date().toISOString().split("T")[0],
-        category: "",
+    const [formData, setFormData] = useState(getEmptyForm);
+
+    const [summary, setSummary] = useState({
+        income: 0,
+        expenses: 0,
+        balance: 0,
     });
 
     const [saving, setSaving] = useState(false);
@@ -136,6 +157,41 @@ function Transactions() {
         }
     }
 
+    function resetModalState() {
+        setFieldErrors({});
+        setFormError("");
+        setShowCategoryInput(false);
+        setShowCategoryDropdown(false);
+        setNewCategoryName("");
+        setCategoryError("");
+    }
+
+    function openCreateModal() {
+        const transferCategory = categories.find(
+            (category) => category.name === "Transferências"
+        );
+
+        setEditingTransaction(null);
+        setFormData({
+            ...getEmptyForm(),
+            category: transferCategory ? String(transferCategory.id) : "",
+        });
+        resetModalState();
+        setShowModal(true);
+    }
+
+    function closeTransactionModal() {
+        setShowModal(false);
+        setEditingTransaction(null);
+        setFormData(getEmptyForm());
+        resetModalState();
+    }
+
+    function closeDeleteModal() {
+        setTransactionToDelete(null);
+        setDeleteError("");
+    }
+
     function handleEditTransaction(transaction) {
         setEditingTransaction(transaction);
 
@@ -149,11 +205,7 @@ function Transactions() {
                 : "",
         });
 
-        setFieldErrors({});
-        setFormError("");
-        setShowCategoryInput(false);
-        setNewCategoryName("");
-        setCategoryError("");
+        resetModalState();
         setShowModal(true);
     }
 
@@ -162,6 +214,7 @@ function Transactions() {
 
         try {
             setDeletingTransaction(true);
+            setDeleteError("");
 
             await deleteTransaction(transactionToDelete.id);
 
@@ -171,11 +224,11 @@ function Transactions() {
                 )
             );
 
-            setTransactionToDelete(null);
+            closeDeleteModal();
             await refreshFinancialSummary();
         } catch (error) {
             console.error(error);
-            setFormError("Não foi possível excluir a transação.");
+            setDeleteError("Não foi possível excluir a transação. Tente novamente.");
         } finally {
             setDeletingTransaction(false);
         }
@@ -234,16 +287,7 @@ function Transactions() {
             );
             await refreshFinancialSummary();
 
-            setFormData({
-                description: "",
-                amount: "",
-                type: "INCOME",
-                date: new Date().toISOString().split("T")[0],
-                category: "",
-            });
-
-            setEditingTransaction(null);
-            setShowModal(false);
+            closeTransactionModal();
 
         } catch (error) {
             console.error(error);
@@ -260,6 +304,8 @@ function Transactions() {
         async function loadData() {
             try {
                 setLoading(true);
+
+                const today = new Date();
 
                 const [transactionData, categoryData, dashboardData] = await Promise.all([
                     getTransactions(),
@@ -314,14 +360,6 @@ function Transactions() {
         transaction.description.toLowerCase().includes(search.toLowerCase())
     );
 
-    const today = new Date();
-
-    const [summary, setSummary] = useState({
-        income: 0,
-        expenses: 0,
-        balance: 0,
-    });
-
     return (
         <div className="app-layout">
             <Sidebar />
@@ -341,21 +379,7 @@ function Transactions() {
 
                         <button
                             className="primary-button"
-                            onClick={() => {
-                                const transferCategory = categories.find(
-                                    (category) => category.name === "Transferências"
-                                );
-
-                                setFormData((previous) => ({
-                                    ...previous,
-                                    category: transferCategory ? String(transferCategory.id) : ""
-                                }));
-
-                                setShowModal(true);
-                                setShowCategoryInput(false);
-                                setNewCategoryName("");
-                                setCategoryError("");
-                            }}
+                            onClick={openCreateModal}
                         >
                             <Plus size={18} />
                             Nova transação
@@ -498,19 +522,18 @@ function Transactions() {
                             <div className="transaction-modal">
                                 <div className="modal-header">
                                     <div>
-                                        <h2>Nova transação</h2>
-                                        <p>Adicione uma receita ou despesa.</p>
+                                        <h2>{editingTransaction ? "Editar transação" : "Nova transação"}</h2>
+                                        <p>
+                                            {editingTransaction
+                                                ? "Atualize os dados desta transação."
+                                                : "Adicione uma receita ou despesa."}
+                                        </p>
                                     </div>
 
                                     <button
                                         type="button"
                                         className="modal-close"
-                                        onClick={() => {
-                                            setShowModal(false);
-                                            setShowCategoryInput(false);
-                                            setNewCategoryName("");
-                                            setCategoryError("");
-                                        }}
+                                        onClick={closeTransactionModal}
                                     >
                                         ×
                                     </button>
@@ -735,13 +758,9 @@ function Transactions() {
                                                     return;
                                                 }
 
-                                                const year = date.getFullYear();
-                                                const month = String(date.getMonth() + 1).padStart(2, "0");
-                                                const day = String(date.getDate()).padStart(2, "0");
-
                                                 setFormData({
                                                     ...formData,
-                                                    date: `${year}-${month}-${day}`
+                                                    date: formatDateToISO(date)
                                                 });
 
                                                 setFieldErrors({
@@ -771,13 +790,7 @@ function Transactions() {
                                         <button
                                             type="button"
                                             className="secondary-button"
-                                            onClick={() => {
-                                                setShowModal(false);
-                                                setShowCategoryInput(false);
-                                                setShowCategoryDropdown(false);
-                                                setNewCategoryName("");
-                                                setCategoryError("");
-                                            }}
+                                            onClick={closeTransactionModal}
                                         >
                                             Cancelar
                                         </button>
@@ -787,7 +800,11 @@ function Transactions() {
                                             className="primary-button"
                                             disabled={saving}
                                         >
-                                            {saving ? "Salvando..." : "Salvar transação"}
+                                            {saving
+                                                ? "Salvando..."
+                                                : editingTransaction
+                                                    ? "Salvar alterações"
+                                                    : "Salvar transação"}
                                         </button>
                                     </div>
                                 </form>
@@ -810,18 +827,22 @@ function Transactions() {
                                     <button
                                         type="button"
                                         className="modal-close"
-                                        onClick={() => setTransactionToDelete(null)}
+                                        onClick={closeDeleteModal}
                                         disabled={deletingTransaction}
                                     >
                                         ×
                                     </button>
                                 </div>
 
+                                {deleteError && (
+                                    <p className="form-error">{deleteError}</p>
+                                )}
+
                                 <div className="modal-actions">
                                     <button
                                         type="button"
                                         className="secondary-button"
-                                        onClick={() => setTransactionToDelete(null)}
+                                        onClick={closeDeleteModal}
                                         disabled={deletingTransaction}
                                     >
                                         Cancelar
