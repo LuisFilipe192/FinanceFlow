@@ -81,10 +81,16 @@
     transition: background-color 150ms ease, color 150ms ease;
 }
 
-.nav-item:hover,
 .nav-item.active {
     background: var(--surface-hover);
     color: var(--accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .nav-item:hover {
+        background: var(--surface-hover);
+        color: var(--accent);
+    }
 }
 
 .main-content {
@@ -480,8 +486,10 @@
     flex-shrink: 0;
 }
 
-.primary-button:hover {
-    background: var(--accent-hover);
+@media (hover: hover) and (pointer: fine) {
+    .primary-button:hover {
+        background: var(--accent-hover);
+    }
 }
 
 .transactions-table-card {
@@ -663,8 +671,10 @@
     border-bottom: none;
 }
 
-.transaction-row:hover {
-    background: var(--surface-stripe);
+@media (hover: hover) and (pointer: fine) {
+    .transaction-row:hover {
+        background: var(--surface-stripe);
+    }
 }
 
 .transaction-icon {
@@ -783,9 +793,11 @@
     cursor: pointer;
 }
 
-.modal-close:hover {
-    color: var(--text-primary);
-    background: var(--surface-hover);
+@media (hover: hover) and (pointer: fine) {
+    .modal-close:hover {
+        color: var(--text-primary);
+        background: var(--surface-hover);
+    }
 }
 
 .transaction-modal form {
@@ -857,6 +869,10 @@
 }
 
 .secondary-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     min-height: 44px;
     padding: 0 18px;
     border: 1px solid var(--border);
@@ -864,13 +880,16 @@
     background: transparent;
     color: var(--text-secondary);
     font-family: inherit;
+    font-size: var(--text-sm);
     font-weight: 600;
     cursor: pointer;
 }
 
-.secondary-button:hover {
-    background: var(--bg-card);
-    color: var(--text-primary);
+@media (hover: hover) and (pointer: fine) {
+    .secondary-button:hover {
+        background: var(--bg-card);
+        color: var(--text-primary);
+    }
 }
 
 .modal-actions .primary-button:disabled {
@@ -986,9 +1005,14 @@
     transition: border-color 0.2s, background 0.2s;
 }
 
-.category-dropdown-trigger:hover,
 .category-dropdown-trigger.open {
     border-color: var(--accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .category-dropdown-trigger:hover {
+        border-color: var(--accent);
+    }
 }
 
 .category-dropdown-trigger svg {
@@ -1035,9 +1059,14 @@
 
 /* Sem transição: navegar com as setas precisa de resposta instantânea.
    .active = opção destacada pelo mouse ou pelas setas do teclado. */
-.category-dropdown-option:hover,
 .category-dropdown-option.active {
     background: var(--bg-secondary);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .category-dropdown-option:hover {
+        background: var(--bg-secondary);
+    }
 }
 
 .category-dropdown-option.selected {
@@ -1110,8 +1139,10 @@
     cursor: pointer;
 }
 
-.notification button:hover {
-    color: var(--text-primary);
+@media (hover: hover) and (pointer: fine) {
+    .notification button:hover {
+        color: var(--text-primary);
+    }
 }
 
 @keyframes notificationIn {
@@ -1145,19 +1176,26 @@
 }
 
 .danger-button {
-    padding: 12px 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 18px;
     background: var(--danger-strong);
     color: var(--on-danger);
     border: none;
     border-radius: var(--radius-md);
-    font-size: var(--text-base);
-    font-weight: 600;
+    font-size: var(--text-sm);
+    font-weight: 700;
     cursor: pointer;
     transition: background 0.2s ease, opacity 0.2s ease;
 }
 
-.danger-button:hover {
-    background: var(--danger-strong-hover);
+@media (hover: hover) and (pointer: fine) {
+    .danger-button:hover {
+        background: var(--danger-strong-hover);
+    }
 }
 
 .danger-button:disabled {
@@ -1202,9 +1240,6 @@
 }
 
 .danger-zone .danger-button {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
     white-space: nowrap;
     flex-shrink: 0;
 }
@@ -1252,9 +1287,11 @@
     border-radius: var(--radius-sm) !important;
 }
 
-.react-datepicker__day:hover {
-    background: var(--accent-soft) !important;
-    color: var(--accent) !important;
+@media (hover: hover) and (pointer: fine) {
+    .react-datepicker__day:hover {
+        background: var(--accent-soft) !important;
+        color: var(--accent) !important;
+    }
 }
 
 .react-datepicker__day--selected,
@@ -1381,9 +1418,11 @@
     transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.period-arrow:hover:not(:disabled) {
-    background: var(--surface-hover);
-    color: var(--accent);
+@media (hover: hover) and (pointer: fine) {
+    .period-arrow:hover:not(:disabled) {
+        background: var(--surface-hover);
+        color: var(--accent);
+    }
 }
 
 .period-arrow:disabled {
@@ -1419,8 +1458,10 @@
     transition: border-color 0.15s ease;
 }
 
-.period-today:hover {
-    border-color: var(--border);
+@media (hover: hover) and (pointer: fine) {
+    .period-today:hover {
+        border-color: var(--border);
+    }
 }
 
 @media (max-width: 700px) {
@@ -1789,14 +1830,18 @@
     transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.row-action:hover {
-    background: var(--surface-hover);
-    color: var(--accent);
+@media (hover: hover) and (pointer: fine) {
+    .row-action:hover {
+        background: var(--surface-hover);
+        color: var(--accent);
+    }
 }
 
-.row-action.danger:hover {
-    background: var(--danger-soft);
-    color: var(--danger);
+@media (hover: hover) and (pointer: fine) {
+    .row-action.danger:hover {
+        background: var(--danger-soft);
+        color: var(--danger);
+    }
 }
 
 /* Com mouse, as ações aparecem ao passar sobre a linha ou ao navegar com Tab.
@@ -1832,9 +1877,11 @@
     transition: background-color 150ms ease, transform 120ms var(--ease-out);
 }
 
-.notification .notification-action:hover {
-    color: var(--accent);
-    background: var(--accent-soft);
+@media (hover: hover) and (pointer: fine) {
+    .notification .notification-action:hover {
+        color: var(--accent);
+        background: var(--accent-soft);
+    }
 }
 
 .notification .notification-action:active {
@@ -1919,6 +1966,15 @@
     color: var(--danger);
 }
 
+.insight-banner.notice {
+    border-color: var(--warning-border);
+}
+
+.insight-banner.notice .insight-icon {
+    background: var(--warning-soft);
+    color: var(--warning);
+}
+
 @keyframes insight-in {
     from {
         opacity: 0;
@@ -1945,9 +2001,14 @@
 
 .transaction-modal .transaction-form input:focus,
 .transaction-form .react-datepicker__input-container input:focus,
-.transaction-form .category-dropdown-trigger:hover,
 .transaction-form .category-dropdown-trigger.open {
     border-color: var(--type-color);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .transaction-form .category-dropdown-trigger:hover {
+        border-color: var(--type-color);
+    }
 }
 
 .transaction-form .transaction-type-selector {
@@ -2278,9 +2339,11 @@
     transition: color 150ms ease, background-color 150ms ease;
 }
 
-.password-toggle:hover {
-    color: var(--text-primary);
-    background: var(--surface-hover);
+@media (hover: hover) and (pointer: fine) {
+    .password-toggle:hover {
+        color: var(--text-primary);
+        background: var(--surface-hover);
+    }
 }
 
 .auth-field .field-error {
@@ -2361,8 +2424,10 @@
     font-weight: 600;
 }
 
-.auth-footer a:hover {
-    text-decoration: underline;
+@media (hover: hover) and (pointer: fine) {
+    .auth-footer a:hover {
+        text-decoration: underline;
+    }
 }
 
 @media (max-width: 900px) {
@@ -2398,9 +2463,14 @@
     transition: border-color 150ms ease, transform 120ms var(--ease-out);
 }
 
-.header-actions .user-avatar:hover,
 .header-actions .user-avatar[aria-expanded="true"] {
     border-color: var(--accent);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .header-actions .user-avatar:hover {
+        border-color: var(--accent);
+    }
 }
 
 .header-actions .user-avatar:active {
@@ -2465,10 +2535,16 @@
     color: var(--danger);
 }
 
-.user-menu-item:hover,
 .user-menu-item:focus-visible {
     background: var(--danger-soft);
     outline: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .user-menu-item:hover {
+        background: var(--danger-soft);
+        outline: none;
+    }
 }
 
 .user-menu-item:disabled {
@@ -2658,8 +2734,10 @@
     transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.segmented-control button:hover {
-    color: var(--text-primary);
+@media (hover: hover) and (pointer: fine) {
+    .segmented-control button:hover {
+        color: var(--text-primary);
+    }
 }
 
 .segmented-control button.active {

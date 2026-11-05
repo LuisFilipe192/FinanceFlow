@@ -86,7 +86,7 @@ function ProfileForm() {
     return (
         <form className="auth-form profile-form" onSubmit={handleSubmit} noValidate>
             {!user.email && (
-                <div className="insight-banner warning">
+                <div className="insight-banner notice">
                     <div className="insight-icon">
                         <MailWarning size={18} />
                     </div>
