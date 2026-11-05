@@ -407,8 +407,13 @@ class UserIsolationTests(TestCase):
         summary = response.json()["summary"]
         self.assertEqual(Decimal(summary["expenses"]), Decimal("50.00"))
 
-        categories = [item["category"] for item in response.json()["expenses_by_category"]]
+        expenses_by_category = response.json()["expenses_by_category"]
+        categories = [item["category"] for item in expenses_by_category]
         self.assertNotIn("Viagem", categories)
+
+        own_ids = set(Category.objects.filter(user=self.ana).values_list("id", flat=True))
+        for item in expenses_by_category:
+            self.assertIn(item["category_id"], own_ids | {None})
 
     # Alteração de transação alheia
 

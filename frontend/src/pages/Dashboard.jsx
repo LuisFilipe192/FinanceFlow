@@ -14,6 +14,8 @@ import MonthlyChart from "../components/MonthlyChart";
 import CategoryChart from "../components/CategoryChart";
 
 import { getDashboard } from "../services/dashboard";
+import { getCategories } from "../services/transactions";
+import { getCategoryColorMap } from "../utils/categoryColors";
 import { sumExpensesUntil } from "../utils/insights";
 
 function Dashboard() {
@@ -31,6 +33,19 @@ function Dashboard() {
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [categoryColors, setCategoryColors] = useState(() => new Map());
+
+    useEffect(() => {
+        const controller = new AbortController();
+
+        getCategories({ signal: controller.signal })
+            .then((categories) => setCategoryColors(getCategoryColorMap(categories)))
+            .catch((requestError) => {
+                if (requestError.name !== "AbortError") console.error(requestError);
+            });
+
+        return () => controller.abort();
+    }, []);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -156,7 +171,7 @@ function Dashboard() {
             </section>
 
             <section className="analytics-section">
-                <CategoryChart data={expensesByCategory} loading={loading} />
+                <CategoryChart data={expensesByCategory} colorMap={categoryColors} loading={loading} />
             </section>
         </>
     );

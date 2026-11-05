@@ -44,6 +44,7 @@ def get_expenses_by_category(user, month=None, year=None):
         transactions = transactions.filter(date__year=year)
 
     expenses = transactions.values(
+        "category_id",
         "category__name"
     ).annotate(
         total=Sum("amount")

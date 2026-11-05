@@ -1,4 +1,3 @@
-
 import {
     ResponsiveContainer,
     BarChart,
@@ -7,12 +6,18 @@ import {
     YAxis,
     CartesianGrid,
     Tooltip,
-    Legend,
 } from "recharts";
 
 import { Skeleton } from "./Skeleton";
-import { formatCurrency } from "../utils/format";
+import { formatCompactCurrency, formatCurrency } from "../utils/format";
 import { chartTooltipStyle } from "./chartStyles";
+
+const AXIS_TICK = { fill: "var(--text-secondary)", fontSize: 12 };
+
+const SERIES = [
+    { key: "receitas", label: "Receitas", color: "var(--accent)" },
+    { key: "despesas", label: "Despesas", color: "var(--danger)" },
+];
 
 function MonthlyChart({ data = [], loading = false }) {
     const chartData = data.map((item) => ({
@@ -21,73 +26,81 @@ function MonthlyChart({ data = [], loading = false }) {
         despesas: Number(item.expenses),
     }));
 
+    const hasMovement = chartData.some((item) => item.receitas > 0 || item.despesas > 0);
+
     return (
         <div className="chart-card">
-            <div className="chart-header">
+            <div className="chart-header chart-header-row">
                 <div>
                     <h2>Movimentação mensal</h2>
                     <p>Receitas e despesas por dia</p>
                 </div>
+
+                {hasMovement && !loading && (
+                    <ul className="chart-legend">
+                        {SERIES.map((series) => (
+                            <li key={series.key}>
+                                <span className="chart-legend-dot" style={{ background: series.color }} />
+                                {series.label}
+                            </li>
+                        ))}
+                    </ul>
+                )}
             </div>
 
             <div className="chart-container">
                 {loading ? (
                     <Skeleton height="100%" className="skeleton-chart" />
-                ) : (
+                ) : hasMovement ? (
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart
                             data={chartData}
-                            margin={{ top: 10, right: 10, left: 10, bottom: 5 }}
+                            margin={{ top: 8, right: 4, left: 0, bottom: 0 }}
+                            barGap={2}
                         >
-                            <CartesianGrid
-                                stroke="#29312c"
-                                vertical={false}
-                            />
+                            <CartesianGrid stroke="var(--border)" vertical={false} />
 
                             <XAxis
                                 dataKey="day"
-                                stroke="#929b95"
+                                tick={AXIS_TICK}
                                 tickLine={false}
                                 axisLine={false}
                                 interval="preserveStartEnd"
+                                minTickGap={12}
                             />
 
                             <YAxis
-                                stroke="#929b95"
+                                tick={AXIS_TICK}
                                 tickLine={false}
                                 axisLine={false}
-                                tickFormatter={(value) =>
-                                    `R$ ${value.toLocaleString("pt-BR")}`
-                                }
+                                width={72}
+                                tickFormatter={formatCompactCurrency}
                             />
 
                             <Tooltip
                                 {...chartTooltipStyle}
-                                cursor={{ fill: "rgba(255, 255, 255, 0.03)" }}
+                                cursor={{ fill: "var(--surface-stripe)" }}
                                 labelFormatter={(day) => `Dia ${day}`}
-                                formatter={(value, name) => [
-                                    formatCurrency(value),
-                                    name,
-                                ]}
+                                formatter={(value, name) => [formatCurrency(value), name]}
                             />
 
-                            <Legend />
-
-                            <Bar
-                                dataKey="receitas"
-                                name="Receitas"
-                                fill="#b5f56a"
-                                radius={[5, 5, 0, 0]}
-                            />
-
-                            <Bar
-                                dataKey="despesas"
-                                name="Despesas"
-                                fill="#f17c7c"
-                                radius={[5, 5, 0, 0]}
-                            />
+                            {SERIES.map((series) => (
+                                <Bar
+                                    key={series.key}
+                                    dataKey={series.key}
+                                    name={series.label}
+                                    fill={series.color}
+                                    radius={[4, 4, 0, 0]}
+                                    maxBarSize={16}
+                                />
+                            ))}
                         </BarChart>
                     </ResponsiveContainer>
+                ) : (
+                    <div className="chart-empty">
+                        <strong>Nenhuma movimentação neste mês</strong>
+                        <span>Receitas e despesas aparecem aqui, dia a dia, assim que você registrar.</span>
+                    </div>
                 )}
             </div>
         </div>

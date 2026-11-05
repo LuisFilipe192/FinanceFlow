@@ -19,6 +19,8 @@ class FinancialSummarySerializer(serializers.Serializer):
 
 
 class CategoryExpenseSerializer(serializers.Serializer):
+    category_id = serializers.IntegerField(allow_null=True)
+
     category = serializers.CharField(
         source="category__name",
         allow_null=True

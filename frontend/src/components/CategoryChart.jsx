@@ -9,24 +9,11 @@ import {
 
 import { Skeleton } from "./Skeleton";
 import { formatCurrency } from "../utils/format";
+import { buildCategorySlices } from "../utils/categoryColors";
 import { chartTooltipStyle } from "./chartStyles";
 
-const COLORS = [
-    "#b5f56a",
-    "#8bb8ff",
-    "#f17c7c",
-    "#c084fc",
-    "#e5b567",
-    "#67d5c5",
-    "#f49ac2",
-];
-
-function CategoryChart({ data = [], loading = false }) {
-    const chartData = data.map((category, index) => ({
-        name: category.category || "Sem categoria",
-        value: Number(category.total),
-        color: COLORS[index % COLORS.length],
-    }));
+function CategoryChart({ data = [], colorMap = new Map(), loading = false }) {
+    const chartData = buildCategorySlices(data, colorMap);
 
     const totalExpenses = chartData.reduce(
         (total, category) => total + category.value,
@@ -60,12 +47,12 @@ function CategoryChart({ data = [], loading = false }) {
                                     cy="50%"
                                     innerRadius={75}
                                     outerRadius={110}
-                                    paddingAngle={4}
+                                    paddingAngle={2}
                                     stroke="none"
                                 >
                                     {chartData.map((category) => (
                                         <Cell
-                                            key={category.name}
+                                            key={category.key}
                                             fill={category.color}
                                         />
                                     ))}
@@ -92,7 +79,7 @@ function CategoryChart({ data = [], loading = false }) {
 
                     <ul className="category-legend">
                         {chartData.map((category) => (
-                            <li key={category.name}>
+                            <li key={category.key}>
                                 <span
                                     className="category-legend-dot"
                                     style={{ background: category.color }}

@@ -9,6 +9,17 @@ export function formatCurrency(value) {
     });
 }
 
+const compactCurrencyFormatter = new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    notation: "compact",
+    maximumFractionDigits: 1,
+});
+
+export function formatCompactCurrency(value) {
+    return compactCurrencyFormatter.format(value);
+}
+
 // "2026-10-31" -> Date à meia-noite no fuso local. new Date("2026-10-31")
 // sozinho seria interpretado como UTC e, no Brasil, viraria o dia 30.
 export function parseISODate(isoDate) {
