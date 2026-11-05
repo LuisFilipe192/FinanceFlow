@@ -195,23 +195,36 @@ class RegisterIntegrityErrorTests(TestCase):
     url = "/api/auth/register/"
     payload = {
         "username": "novousuario",
+        "email": "novo@example.com",
         "password": "SenhaForte!2026",
         "password_confirmation": "SenhaForte!2026",
     }
 
-    def test_race_on_username_returns_400(self):
-        # Simula outro cadastro com o mesmo nome entre a validação e o INSERT:
-        # o INSERT falha e, ao conferir de novo, o nome já existe.
-        duplicate = IntegrityError("UNIQUE constraint failed: auth_user.username")
+    def setUp(self):
+        cache.clear()
+
+    def post_with_race(self, exists_results):
+        duplicate = IntegrityError("UNIQUE constraint failed")
 
         with patch.object(UserManager, "create_user", side_effect=duplicate), \
-                patch("django.db.models.query.QuerySet.exists", side_effect=[False, True]):
-            response = self.client.post(
+                patch("django.db.models.query.QuerySet.exists", side_effect=exists_results):
+            return self.client.post(
                 self.url, self.payload, content_type="application/json"
             )
 
+    def test_race_on_username_returns_400(self):
+        # Simula outro cadastro com o mesmo nome entre a validação e o INSERT:
+        # o INSERT falha e, ao conferir de novo, o nome já existe.
+        response = self.post_with_race([False, False, True, False])
+
         self.assertEqual(response.status_code, 400)
-        self.assertIn("username", response.json()["errors"])
+        self.assertEqual(list(response.json()["errors"]), ["username"])
+
+    def test_race_on_email_returns_400(self):
+        response = self.post_with_race([False, False, False, True])
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(list(response.json()["errors"]), ["email"])
 
     def test_unexpected_integrity_error_is_not_hidden(self):
         with patch.object(UserManager, "create_user", side_effect=IntegrityError("outra falha")):
@@ -909,3 +922,50 @@ class LoginWithEmailTests(TestCase):
         self.user.save()
 
         self.assertEqual(self.login("ana@example.com").status_code, 401)
+
+
+class RegisterEmailTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        User.objects.create_user(username="ana", email="ana@example.com", password="x")
+
+    def tearDown(self):
+        cache.clear()
+
+    def register(self, **fields):
+        payload = {
+            "username": "novousuario",
+            "email": "novo@example.com",
+            "password": "SenhaForte!2026",
+            "password_confirmation": "SenhaForte!2026",
+            **fields,
+        }
+        return self.client.post("/api/auth/register/", payload, content_type="application/json")
+
+    def test_creates_account_with_email(self):
+        response = self.register(email=" Novo@EXAMPLE.com ")
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["user"]["email"], "Novo@example.com")
+        self.assertTrue(User.objects.filter(username="novousuario", email="Novo@example.com").exists())
+
+    def test_email_is_required_and_must_be_valid_and_unique(self):
+        for email in (None, "", "nao-e-email", "ANA@example.com"):
+            with self.subTest(email=email):
+                response = self.register(email=email)
+
+                self.assertEqual(response.status_code, 400)
+                self.assertIn("email", response.json()["errors"])
+                self.assertFalse(User.objects.filter(username="novousuario").exists())
+
+    def test_new_account_can_log_in_with_email(self):
+        self.register()
+        self.client.logout()
+
+        response = self.client.post(
+            "/api/auth/login/",
+            {"username": "novo@example.com", "password": "SenhaForte!2026"},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)

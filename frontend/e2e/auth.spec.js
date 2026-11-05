@@ -88,6 +88,7 @@ test.describe("Cadastro", () => {
 
         await page.goto("/register");
         await page.getByLabel("Nome de usuário").fill(username);
+        await page.getByLabel("E-mail").fill(`${username}@example.com`);
 
         await page.getByLabel("Senha", { exact: true }).fill("12345678");
         await expect(rule("Pelo menos 8 caracteres")).toHaveClass(/ok/);
@@ -108,11 +109,22 @@ test.describe("Cadastro", () => {
         await page.goto("/register");
 
         await page.getByLabel("Nome de usuário").fill(E2E_USER.username);
+        await page.getByLabel("E-mail").fill(`${E2E_PREFIX}${uniqueLetters()}@example.com`);
         await page.getByLabel("Senha", { exact: true }).fill("Carteira!Verde42");
         await page.getByLabel("Confirme a senha").fill("Carteira!Verde42");
         await page.getByRole("button", { name: "Criar conta" }).click();
 
         await expect(page.getByText("Este nome de usuário não está disponível.")).toBeVisible();
         await expect(page).toHaveURL("/register");
+    });
+
+    test("e-mail vazio ou inválido é apontado antes de enviar", async ({ page }) => {
+        await page.goto("/register");
+
+        await page.getByRole("button", { name: "Criar conta" }).click();
+        await expect(page.getByText("Informe seu e-mail.")).toBeVisible();
+
+        await page.getByLabel("E-mail").fill("sem-arroba");
+        await expect(page.getByText("Informe um e-mail válido, como nome@exemplo.com.")).toBeVisible();
     });
 });

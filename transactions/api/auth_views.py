@@ -218,6 +218,7 @@ def register_view(request):
         )
 
     raw_username = payload.get("username")
+    raw_email = payload.get("email")
     password = payload.get("password")
     password_confirmation = payload.get("password_confirmation")
     errors = {}
@@ -230,6 +231,12 @@ def register_view(request):
         errors["username"] = [username_error]
     else:
         setattr(candidate, User.USERNAME_FIELD, username)
+
+    email, email_error = _clean_email(raw_email)
+    if email_error:
+        errors["email"] = [email_error]
+    else:
+        candidate.email = email
 
     if not isinstance(password, str) or not password:
         errors["password"] = ["Informe uma senha."]
@@ -259,28 +266,31 @@ def register_view(request):
             user = User._default_manager.create_user(
                 **{
                     User.USERNAME_FIELD: username,
+                    "email": email,
                     "password": password,
                 }
             )
     except IntegrityError:
-        # Só trata como nome indisponível se outro cadastro venceu a corrida
-        # entre a validação e o INSERT. Qualquer outra falha de integridade
-        # é um erro inesperado e deve continuar visível (500 + log).
-        username_taken = User._default_manager.filter(
-            **{User.USERNAME_FIELD: username}
-        ).exists()
+        # Só trata como nome ou e-mail indisponível se outro cadastro venceu a
+        # corrida entre a validação e o INSERT. Qualquer outra falha de
+        # integridade é um erro inesperado e deve continuar visível (500 + log).
+        conflicts = {}
 
-        if not username_taken:
+        if User._default_manager.filter(
+            **{User.USERNAME_FIELD: username}
+        ).exists():
+            conflicts["username"] = ["Este nome de usuário não está disponível."]
+
+        if User._default_manager.filter(email__iexact=email).exists():
+            conflicts["email"] = ["Este e-mail já está em uso."]
+
+        if not conflicts:
             raise
 
         return _json_response(
             {
                 "detail": "Revise os dados do cadastro.",
-                "errors": {
-                    "username": [
-                        "Este nome de usuário não está disponível."
-                    ],
-                },
+                "errors": conflicts,
             },
             status=400,
         )

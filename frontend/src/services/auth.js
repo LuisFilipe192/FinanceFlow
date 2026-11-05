@@ -40,14 +40,15 @@ export async function login({ username, password }) {
 }
 
 // Em caso de erro de validação, error.data.errors traz as mensagens por campo:
-// { username: [...], password: [...], password_confirmation: [...] }.
-export async function register({ username, password, passwordConfirmation }) {
+// { username: [...], email: [...], password: [...], password_confirmation: [...] }.
+export async function register({ username, email, password, passwordConfirmation }) {
     await ensureCsrfCookie();
 
     return apiRequest("/auth/register/", {
         method: "POST",
         body: {
             username,
+            email,
             password,
             password_confirmation: passwordConfirmation,
         },

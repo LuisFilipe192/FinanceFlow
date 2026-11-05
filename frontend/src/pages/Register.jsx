@@ -11,6 +11,8 @@ import { getRedirectTarget } from "../utils/authRedirect";
 // Mesmos caracteres aceitos pelo usuário padrão do Django.
 const USERNAME_PATTERN = /^[\w.@+-]+$/;
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 // Regras que dá para conferir enquanto a pessoa digita. O Django ainda
 // recusa senhas muito comuns ou parecidas com o usuário: essas mensagens
 // chegam do servidor e aparecem abaixo do campo.
@@ -29,6 +31,7 @@ function Register() {
     const location = useLocation();
 
     const [username, setUsername] = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmation, setConfirmation] = useState("");
     const [submitted, setSubmitted] = useState(false);
@@ -39,12 +42,18 @@ function Register() {
 
     const rules = getPasswordRules(password, confirmation);
     const trimmedUsername = username.trim();
+    const trimmedEmail = email.trim();
 
     const clientErrors = {
         username: !trimmedUsername
             ? "Escolha um nome de usuário."
             : !USERNAME_PATTERN.test(trimmedUsername)
                 ? "Use letras, números e @ . + - _ (sem espaços)."
+                : "",
+        email: !trimmedEmail
+            ? "Informe seu e-mail."
+            : !EMAIL_PATTERN.test(trimmedEmail)
+                ? "Informe um e-mail válido, como nome@exemplo.com."
                 : "",
         password: !rules[0].ok || !rules[1].ok ? "A senha ainda não atende às regras abaixo." : "",
         confirmation: !confirmation
@@ -76,6 +85,7 @@ function Register() {
 
             const user = await register({
                 username: trimmedUsername,
+                email: trimmedEmail,
                 password,
                 passwordConfirmation: confirmation,
             });
@@ -91,6 +101,7 @@ function Register() {
             if (fieldErrors) {
                 setServerErrors({
                     username: fieldErrors.username?.join(" ") || "",
+                    email: fieldErrors.email?.join(" ") || "",
                     password: fieldErrors.password?.join(" ") || "",
                     confirmation: fieldErrors.password_confirmation?.join(" ") || "",
                 });
@@ -103,6 +114,7 @@ function Register() {
     }
 
     const usernameError = getError("username");
+    const emailError = getError("email");
     const passwordError = getError("password");
     const confirmationError = getError("confirmation");
 
@@ -145,7 +157,30 @@ function Register() {
                         }}
                     />
                     <span id="register-username-help" className={usernameError ? "field-error" : "field-hint"}>
-                        {usernameError || "É com ele que você vai entrar. Letras, números e @ . + - _"}
+                        {usernameError || "Letras, números e @ . + - _"}
+                    </span>
+                </div>
+
+                <div className="auth-field">
+                    <label htmlFor="register-email">E-mail</label>
+                    <input
+                        id="register-email"
+                        type="email"
+                        autoComplete="email"
+                        autoCapitalize="none"
+                        spellCheck={false}
+                        maxLength={254}
+                        value={email}
+                        className={emailError ? "input-error" : ""}
+                        aria-invalid={Boolean(emailError)}
+                        aria-describedby="register-email-help"
+                        onChange={(event) => {
+                            setEmail(event.target.value);
+                            clearServerError("email");
+                        }}
+                    />
+                    <span id="register-email-help" className={emailError ? "field-error" : "field-hint"}>
+                        {emailError || "Você pode entrar com ele ou com o nome de usuário."}
                     </span>
                 </div>
 
