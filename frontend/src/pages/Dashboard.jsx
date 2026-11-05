@@ -13,6 +13,7 @@ import MonthlyChart from "../components/MonthlyChart";
 import CategoryChart from "../components/CategoryChart";
 
 import { getDashboard } from "../services/dashboard";
+import { sumExpensesUntil } from "../utils/insights";
 
 function Dashboard() {
     const today = new Date();
@@ -21,7 +22,7 @@ function Dashboard() {
     const [year, setYear] = useState(today.getFullYear());
 
     const [summary, setSummary] = useState(null);
-    const [previousSummary, setPreviousSummary] = useState(null);
+    const [previousComparison, setPreviousComparison] = useState(null);
     // Período a que os dados na tela pertencem (muda só quando a resposta chega).
     const [loadedPeriod, setLoadedPeriod] = useState({ month, year });
     const [dailyMovement, setDailyMovement] = useState([]);
@@ -50,8 +51,16 @@ function Dashboard() {
                     }).catch(() => null),
                 ]);
 
+                const now = new Date();
+                const isCurrentMonth = month === now.getMonth() + 1 && year === now.getFullYear();
+                const untilDay = isCurrentMonth ? now.getDate() : null;
+
                 setSummary(data.summary);
-                setPreviousSummary(previousData?.summary ?? null);
+                setPreviousComparison(
+                    previousData
+                        ? { expenses: sumExpensesUntil(previousData.daily_movement, untilDay), untilDay }
+                        : null
+                );
                 setLoadedPeriod({ month, year });
                 setDailyMovement(data.daily_movement);
                 setExpensesByCategory(data.expenses_by_category);
@@ -106,7 +115,7 @@ function Dashboard() {
                 <InsightBanner
                     loading={loading}
                     summary={error ? null : summary}
-                    previousSummary={previousSummary}
+                    previousComparison={previousComparison}
                     expensesByCategory={expensesByCategory}
                     month={loadedPeriod.month}
                     year={loadedPeriod.year}

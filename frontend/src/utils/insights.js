@@ -14,15 +14,25 @@ export function getGreeting(date = new Date()) {
     return "Boa noite";
 }
 
+export function sumExpensesUntil(dailyMovement, untilDay = null) {
+    return dailyMovement
+        .filter((entry) => untilDay === null || entry.day <= untilDay)
+        .reduce((total, entry) => total + Number(entry.expenses), 0);
+}
+
 // Até duas frases curtas sobre o mês, calculadas a partir dos dados.
 // tone define a cor do ícone: "positive", "warning" ou "neutral".
-export function buildInsight({ summary, previousSummary, expensesByCategory, month, year }) {
+export function buildInsight({ summary, previousComparison, expensesByCategory, month, year }) {
     const monthName = MONTH_NAMES[month - 1];
     const previousMonthName = MONTH_NAMES[(month + 10) % 12];
 
     const income = Number(summary.income);
     const expenses = Number(summary.expenses);
-    const previousExpenses = Number(previousSummary?.expenses ?? 0);
+    const previousExpenses = Number(previousComparison?.expenses ?? 0);
+    const partial = Boolean(previousComparison?.untilDay);
+    const previousPeriod = partial
+        ? `no mesmo período de ${previousMonthName}`
+        : `em ${previousMonthName}`;
 
     if (income === 0 && expenses === 0) {
         return {
@@ -47,11 +57,11 @@ export function buildInsight({ summary, previousSummary, expensesByCategory, mon
 
         if (change <= -5) {
             tone = "positive";
-            sentences.push(`Você gastou ${Math.abs(change)}% menos que em ${previousMonthName}. Boa!`);
+            sentences.push(`Você gastou ${Math.abs(change)}% menos que ${previousPeriod}. Boa!`);
         } else if (change >= 5) {
-            sentences.push(`Você gastou ${change}% mais que em ${previousMonthName}.`);
+            sentences.push(`Você gastou ${change}% mais que ${previousPeriod}.`);
         } else {
-            sentences.push(`Seus gastos estão parecidos com os de ${previousMonthName}.`);
+            sentences.push(`Seus gastos estão parecidos com os ${partial ? "do mesmo período de" : "de"} ${previousMonthName}.`);
         }
     } else {
         tone = "positive";
