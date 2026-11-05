@@ -1,7 +1,8 @@
 import { apiRequest } from "./api";
 
-export function getTransactions() {
+export function getTransactions({ signal } = {}) {
     return apiRequest("/transactions/", {
+        signal,
         fallbackError: "Erro ao buscar transações.",
     });
 }
@@ -30,8 +31,9 @@ export function deleteTransaction(id, { keepalive = false } = {}) {
     });
 }
 
-export function getCategories() {
+export function getCategories({ signal } = {}) {
     return apiRequest("/categories/", {
+        signal,
         fallbackError: "Erro ao buscar categorias.",
     });
 }

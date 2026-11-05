@@ -83,28 +83,37 @@ function Transactions() {
     const pendingDeletes = useRef(new Map());
 
     useEffect(() => {
+        const controller = new AbortController();
+        const { signal } = controller;
+
         async function loadData() {
             try {
                 setLoading(true);
 
                 const [transactionData, categoryData, dashboardData] = await Promise.all([
-                    getTransactions(),
-                    getCategories(),
-                    getDashboard(getCurrentPeriod()),
+                    getTransactions({ signal }),
+                    getCategories({ signal }),
+                    getDashboard({ ...getCurrentPeriod(), signal }),
                 ]);
 
                 setTransactions(transactionData);
                 setCategories(categoryData);
                 setSummary(dashboardData.summary);
             } catch (error) {
-                console.error(error);
-                setError(error.message);
+                if (error.name !== "AbortError") {
+                    console.error(error);
+                    setError(error.message);
+                }
             } finally {
-                setLoading(false);
+                if (!signal.aborted) {
+                    setLoading(false);
+                }
             }
         }
 
         loadData();
+
+        return () => controller.abort();
     }, []);
 
     // Atalho: N abre uma nova transação (fora de campos de texto e de modais).

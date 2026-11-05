@@ -32,19 +32,28 @@ function Categories() {
     const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
+        const controller = new AbortController();
+        const { signal } = controller;
+
         async function loadCategories() {
             try {
-                const data = await getCategories();
+                const data = await getCategories({ signal });
                 setCategories(data);
             } catch (error) {
-                console.error(error);
-                setError("Não foi possível carregar as categorias.");
+                if (error.name !== "AbortError") {
+                    console.error(error);
+                    setError("Não foi possível carregar as categorias.");
+                }
             } finally {
-                setLoading(false);
+                if (!signal.aborted) {
+                    setLoading(false);
+                }
             }
         }
 
         loadCategories();
+
+        return () => controller.abort();
     }, []);
 
     function openCreateForm() {
