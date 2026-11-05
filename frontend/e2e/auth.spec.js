@@ -35,6 +35,23 @@ test.describe("Login", () => {
         await expect(page.getByRole("alert")).toHaveText("Usuário ou senha inválidos.");
     });
 
+    test("muitas tentativas mostram o aviso de espera", async ({ page }) => {
+        await page.route("**/api/auth/login/", (route) => route.fulfill({
+            status: 429,
+            contentType: "application/json",
+            headers: { "Retry-After": "600" },
+            body: JSON.stringify({ detail: "Too many requests." }),
+        }));
+        await page.goto("/login");
+
+        await fillLogin(page, E2E_USER);
+
+        await expect(page.getByRole("alert")).toHaveText(
+            "Muitas tentativas. Aguarde alguns minutos e tente novamente."
+        );
+        await expect(page).toHaveURL("/login");
+    });
+
     test("campos vazios mostram o que falta", async ({ page }) => {
         await page.goto("/login");
 

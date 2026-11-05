@@ -4,6 +4,8 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
 
 const SESSION_ERROR = "Sessão expirada ou usuário não autenticado.";
 
+const TOO_MANY_REQUESTS_ERROR = "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
+
 export const SESSION_CHECK_EVENT = "financeflow:session-check";
 
 // Disparado pelo AuthProvider logo antes do logout (veja logout()).
@@ -18,6 +20,10 @@ export function getCsrfToken() {
 }
 
 function getErrorMessage(status, data, fallbackError, useServerMessage) {
+    if (status === 429) {
+        return TOO_MANY_REQUESTS_ERROR;
+    }
+
     // Nos endpoints de autenticação o próprio Django escreve a mensagem
     // (ex.: 401 = "Usuário ou senha inválidos."), então ela é usada como veio.
     if (useServerMessage) {
