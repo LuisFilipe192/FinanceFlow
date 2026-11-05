@@ -13,8 +13,7 @@ import {
     updateTransaction,
     createCategory,
 } from "../../services/transactions";
-
-const TRANSFER_CATEGORY_NAME = "Transferências";
+import { DEFAULT_CATEGORY_NAME } from "../../utils/categories";
 
 // O valor é guardado como dígitos em centavos ("125000" = R$ 1.250,00), como
 // nos apps de banco: cada número digitado entra pela direita. 10 dígitos é o
@@ -26,7 +25,7 @@ function centsToNumber(digits) {
 }
 
 function findTransferCategory(categories) {
-    return categories.find((category) => category.name === TRANSFER_CATEGORY_NAME);
+    return categories.find((category) => category.name === DEFAULT_CATEGORY_NAME);
 }
 
 // O modal só existe na tela enquanto está aberto. Por isso o estado inicial

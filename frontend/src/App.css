@@ -1705,6 +1705,55 @@
     color: var(--accent);
 }
 
+.category-row .transaction-icon.category {
+    background: color-mix(in srgb, var(--category-color, var(--accent)) 16%, transparent);
+    color: var(--category-color, var(--accent));
+}
+
+.category-row .transaction-meta span + span::before {
+    content: "·";
+    margin-right: 10px;
+    color: var(--text-muted);
+}
+
+.category-share {
+    width: 100%;
+    max-width: 280px;
+    height: 4px;
+    margin-top: 4px;
+    overflow: hidden;
+    background: var(--border);
+    border-radius: var(--radius-xs);
+}
+
+.category-share span {
+    display: block;
+    height: 100%;
+    background: var(--category-color, var(--accent));
+    border-radius: var(--radius-xs);
+}
+
+.category-row .transaction-info > strong {
+    white-space: normal;
+}
+
+@media (max-width: 600px) {
+    .category-row {
+        padding: 10px 4px;
+        gap: 10px;
+    }
+
+    .category-row .transaction-meta span + span {
+        display: none;
+    }
+
+    .category-row .row-locked {
+        gap: 0;
+        padding: 8px;
+        font-size: 0;
+    }
+}
+
 .badge {
     display: inline-block;
     margin-left: 8px;

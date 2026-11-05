@@ -7,14 +7,15 @@ import PageActions from "../components/PageActions";
 import { SkeletonRows } from "../components/Skeleton";
 import CategoryFormModal from "../components/categories/CategoryFormModal";
 import { useToast } from "../context/ToastContext";
+import { getDashboard } from "../services/dashboard";
 import {
     getCategories,
     deleteCategory
 } from "../services/transactions";
-
-// Categoria criada pelo backend que recebe as transações de categorias
-// excluídas. Por isso não pode ser renomeada nem excluída.
-const DEFAULT_CATEGORY_NAME = "Transferências";
+import { DEFAULT_CATEGORY_NAME } from "../utils/categories";
+import { getCategoryColorMap } from "../utils/categoryColors";
+import { formatCurrency, pluralize } from "../utils/format";
+import { MONTH_NAMES } from "../utils/insights";
 
 function sortByName(categories) {
     return [...categories].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
@@ -24,6 +25,7 @@ function Categories() {
     const showToast = useToast();
 
     const [categories, setCategories] = useState([]);
+    const [monthSpending, setMonthSpending] = useState(() => new Map());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     // showForm abre o modal; editingCategory diz se é renomear (objeto) ou criar (null).
@@ -38,8 +40,18 @@ function Categories() {
 
         async function loadCategories() {
             try {
-                const data = await getCategories({ signal });
+                const [data, dashboard] = await Promise.all([
+                    getCategories({ signal }),
+                    getDashboard({ signal }).catch((dashboardError) => {
+                        if (dashboardError.name === "AbortError") throw dashboardError;
+                        return null;
+                    }),
+                ]);
+
                 setCategories(data);
+                setMonthSpending(new Map(
+                    (dashboard?.expenses_by_category ?? []).map((item) => [item.category_id, Number(item.total)])
+                ));
             } catch (error) {
                 if (error.name !== "AbortError") {
                     console.error(error);
@@ -107,6 +119,19 @@ function Categories() {
                 )
             );
 
+            const defaultCategory = categories.find((category) => category.name === DEFAULT_CATEGORY_NAME);
+            setMonthSpending((previous) => {
+                const next = new Map(previous);
+                const moved = next.get(categoryToDelete.id) ?? 0;
+
+                next.delete(categoryToDelete.id);
+                if (defaultCategory && moved > 0) {
+                    next.set(defaultCategory.id, (next.get(defaultCategory.id) ?? 0) + moved);
+                }
+
+                return next;
+            });
+
             setCategoryToDelete(null);
 
             showToast({
@@ -152,15 +177,25 @@ function Categories() {
             );
         }
 
+        const colorMap = getCategoryColorMap(categories);
+        const monthTotal = [...monthSpending.values()].reduce((total, value) => total + value, 0);
+        const monthName = MONTH_NAMES[new Date().getMonth()];
+
         return (
             <div className="transactions-list">
                 {categories.map((category) => {
                     const isDefault = category.name === DEFAULT_CATEGORY_NAME;
+                    const spent = monthSpending.get(category.id) ?? 0;
+                    const share = monthTotal > 0 ? spent / monthTotal : 0;
 
                     return (
-                        <div className="transaction-row" key={category.id}>
+                        <div
+                            className="transaction-row category-row"
+                            key={category.id}
+                            style={{ "--category-color": colorMap.get(category.id) }}
+                        >
                             <div className="transaction-icon category">
-                                <Tags size={20} />
+                                <Tags size={18} />
                             </div>
 
                             {/* Duplo clique no nome é um atalho para renomear. */}
@@ -176,11 +211,22 @@ function Categories() {
                                 </strong>
                                 <div className="transaction-meta">
                                     <span>
-                                        {isDefault
-                                            ? "Usada quando nenhuma categoria é escolhida"
-                                            : "Categoria financeira"}
+                                        {spent > 0
+                                            ? `${formatCurrency(spent)} em ${monthName}`
+                                            : `Sem gastos em ${monthName}`}
                                     </span>
+                                    {isDefault && <span>Usada quando nenhuma categoria é escolhida</span>}
                                 </div>
+
+                                {spent > 0 && (
+                                    <div
+                                        className="category-share"
+                                        role="img"
+                                        aria-label={`${Math.round(share * 100)}% dos gastos de ${monthName}`}
+                                    >
+                                        <span style={{ width: `${Math.max(share * 100, 2)}%` }} />
+                                    </div>
+                                )}
                             </div>
 
                             {isDefault ? (
@@ -221,9 +267,7 @@ function Categories() {
         );
     }
 
-    const countLabel = categories.length === 1
-        ? "1 categoria cadastrada"
-        : `${categories.length} categorias cadastradas`;
+    const countLabel = pluralize(categories.length, "categoria cadastrada", "categorias cadastradas");
 
     return (
         <section className="dashboard-section">

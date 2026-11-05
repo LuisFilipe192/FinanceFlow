@@ -1,3 +1,5 @@
+import { DEFAULT_CATEGORY_NAME } from "./categories";
+
 export const CATEGORY_COLORS = [
     "#3987e5",
     "#d95926",
@@ -12,14 +14,24 @@ export const NEUTRAL_CATEGORY_COLOR = "#59625c";
 const MAX_SLICES = CATEGORY_COLORS.length;
 
 export function getCategoryColorMap(categories) {
-    const ordered = [...categories].sort((a, b) => a.id - b.id);
+    const ordered = [...categories]
+        .filter((category) => category.name !== DEFAULT_CATEGORY_NAME)
+        .sort((a, b) => a.id - b.id);
 
-    return new Map(
+    const colors = new Map(
         ordered.map((category, index) => [
             category.id,
             CATEGORY_COLORS[index % CATEGORY_COLORS.length],
         ])
     );
+
+    for (const category of categories) {
+        if (category.name === DEFAULT_CATEGORY_NAME) {
+            colors.set(category.id, NEUTRAL_CATEGORY_COLOR);
+        }
+    }
+
+    return colors;
 }
 
 export function buildCategorySlices(expensesByCategory, colorMap) {

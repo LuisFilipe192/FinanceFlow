@@ -21,6 +21,13 @@ describe("getCategoryColorMap", () => {
         expect(colors.get(20)).toBe(CATEGORY_COLORS[1]);
         expect(colors.get(30)).toBe(CATEGORY_COLORS[2]);
     });
+
+    it("deixa Transferências em cinza, sem gastar uma das cores", () => {
+        const colors = getCategoryColorMap([{ id: 1, name: "Transferências" }, ...categories]);
+
+        expect(colors.get(1)).toBe(NEUTRAL_CATEGORY_COLOR);
+        expect(colors.get(10)).toBe(CATEGORY_COLORS[0]);
+    });
 });
 
 describe("buildCategorySlices", () => {
