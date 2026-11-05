@@ -10,7 +10,6 @@ import {
 
 import { Skeleton } from "./Skeleton";
 import { formatCompactCurrency, formatCurrency } from "../utils/format";
-import { chartTooltipStyle } from "./chartStyles";
 
 const AXIS_TICK = { fill: "var(--text-secondary)", fontSize: 12 };
 
@@ -18,6 +17,31 @@ const SERIES = [
     { key: "receitas", label: "Receitas", color: "var(--accent)" },
     { key: "despesas", label: "Despesas", color: "var(--danger)" },
 ];
+
+function DayTooltip({ active, payload, label }) {
+    if (!active || !payload?.length) return null;
+
+    const day = payload[0].payload;
+    const rows = SERIES.filter((series) => day[series.key] > 0);
+
+    return (
+        <div className="chart-tooltip">
+            <span className="chart-tooltip-title">Dia {label}</span>
+
+            {rows.length === 0 ? (
+                <span className="chart-tooltip-empty">Sem movimentação</span>
+            ) : (
+                rows.map((series) => (
+                    <div className="chart-tooltip-row" key={series.key}>
+                        <span className="chart-legend-dot" style={{ background: series.color }} />
+                        <span>{series.label}</span>
+                        <strong>{formatCurrency(day[series.key])}</strong>
+                    </div>
+                ))
+            )}
+        </div>
+    );
+}
 
 function MonthlyChart({ data = [], loading = false }) {
     const chartData = data.map((item) => ({
@@ -78,10 +102,9 @@ function MonthlyChart({ data = [], loading = false }) {
                             />
 
                             <Tooltip
-                                {...chartTooltipStyle}
+                                content={<DayTooltip />}
                                 cursor={{ fill: "var(--surface-stripe)" }}
-                                labelFormatter={(day) => `Dia ${day}`}
-                                formatter={(value, name) => [formatCurrency(value), name]}
+                                isAnimationActive={false}
                             />
 
                             {SERIES.map((series) => (

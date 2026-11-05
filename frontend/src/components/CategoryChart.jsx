@@ -10,7 +10,25 @@ import {
 import { Skeleton } from "./Skeleton";
 import { formatCurrency } from "../utils/format";
 import { buildCategorySlices } from "../utils/categoryColors";
-import { chartTooltipStyle } from "./chartStyles";
+
+function CategoryTooltip({ active, payload, total }) {
+    if (!active || !payload?.length) return null;
+
+    const slice = payload[0].payload;
+
+    return (
+        <div className="chart-tooltip">
+            <div className="chart-tooltip-row">
+                <span className="chart-legend-dot" style={{ background: slice.color }} />
+                <span>{slice.name}</span>
+            </div>
+            <strong className="chart-tooltip-value">
+                {formatCurrency(slice.value)}
+                <span> · {Math.round((slice.value / total) * 100)}%</span>
+            </strong>
+        </div>
+    );
+}
 
 function CategoryChart({ data = [], colorMap = new Map(), loading = false }) {
     const chartData = buildCategorySlices(data, colorMap);
@@ -59,11 +77,8 @@ function CategoryChart({ data = [], colorMap = new Map(), loading = false }) {
                                 </Pie>
 
                                 <Tooltip
-                                    formatter={(value) => [
-                                        formatCurrency(value),
-                                        "Total",
-                                    ]}
-                                    {...chartTooltipStyle}
+                                    content={<CategoryTooltip total={totalExpenses} />}
+                                    isAnimationActive={false}
                                 />
                             </PieChart>
                         </ResponsiveContainer>
