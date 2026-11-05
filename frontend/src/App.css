@@ -364,6 +364,18 @@
     height: 320px;
 }
 
+.recharts-wrapper :focus,
+.recharts-wrapper:focus {
+    outline: none;
+}
+
+.recharts-wrapper :focus-visible,
+.recharts-wrapper:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+    border-radius: var(--radius-sm);
+}
+
 @media (max-width: 700px) {
     .chart-card {
         padding: 18px 12px;
