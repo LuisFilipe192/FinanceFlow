@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
 
-import { useAuth } from "../context/AuthContext";
 import DeleteAccountModal from "../components/settings/DeleteAccountModal";
+import ProfileForm from "../components/settings/ProfileForm";
 
 function Settings() {
-    const { user } = useAuth();
     const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     return (
@@ -15,25 +14,19 @@ function Settings() {
                     <span className="section-overline">
                         04 / ACCOUNT
                     </span>
-                    <h2>Configurações</h2>
-                    <p>Gerencie sua conta.</p>
+                    <h2>Sua conta</h2>
+                    <p>Dados de acesso e exclusão da conta.</p>
                 </div>
             </div>
 
             <div className="transactions-table-card">
                 <div className="transactions-table-header">
-                    <h3>Minha conta</h3>
+                    <h3>Perfil</h3>
+                    <span>Nome de usuário e e-mail usados para entrar.</span>
                 </div>
                 <div className="transactions-header-divider"></div>
 
-                <div className="transaction-row">
-                    <div className="transaction-info">
-                        <strong>{user.username}</strong>
-                        <div className="transaction-meta">
-                            <span>Nome de usuário</span>
-                        </div>
-                    </div>
-                </div>
+                <ProfileForm />
             </div>
 
             <div className="transactions-table-card danger-zone">

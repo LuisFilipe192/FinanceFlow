@@ -1098,6 +1098,30 @@
     border-color: rgba(241, 124, 124, 0.35);
 }
 
+.profile-form {
+    max-width: 480px;
+    padding: 4px 24px 8px;
+}
+
+.profile-form .insight-banner {
+    margin-bottom: 0;
+}
+
+.profile-actions .primary-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+    .profile-form {
+        padding: 4px 0 8px;
+    }
+
+    .profile-actions .primary-button {
+        width: 100%;
+    }
+}
+
 .danger-zone .transactions-table-header h3 {
     color: var(--danger);
 }

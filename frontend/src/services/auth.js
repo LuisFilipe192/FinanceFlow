@@ -74,6 +74,16 @@ export function getAccountSummary({ signal } = {}) {
     });
 }
 
+export async function updateAccount(changes) {
+    await ensureCsrfCookie();
+
+    return apiRequest("/auth/account/", {
+        method: "PATCH",
+        body: changes,
+        fallbackError: "Não foi possível salvar seu perfil. Tente novamente.",
+    });
+}
+
 export async function deleteAccount(password) {
     await ensureCsrfCookie();
 

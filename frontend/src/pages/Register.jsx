@@ -7,11 +7,7 @@ import PasswordInput from "../components/auth/PasswordInput";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { getRedirectTarget } from "../utils/authRedirect";
-
-// Mesmos caracteres aceitos pelo usuário padrão do Django.
-const USERNAME_PATTERN = /^[\w.@+-]+$/;
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { getEmailError, getUsernameError } from "../utils/validation";
 
 // Regras que dá para conferir enquanto a pessoa digita. O Django ainda
 // recusa senhas muito comuns ou parecidas com o usuário: essas mensagens
@@ -45,16 +41,8 @@ function Register() {
     const trimmedEmail = email.trim();
 
     const clientErrors = {
-        username: !trimmedUsername
-            ? "Escolha um nome de usuário."
-            : !USERNAME_PATTERN.test(trimmedUsername)
-                ? "Use letras, números e @ . + - _ (sem espaços)."
-                : "",
-        email: !trimmedEmail
-            ? "Informe seu e-mail."
-            : !EMAIL_PATTERN.test(trimmedEmail)
-                ? "Informe um e-mail válido, como nome@exemplo.com."
-                : "",
+        username: getUsernameError(trimmedUsername, "Escolha um nome de usuário."),
+        email: getEmailError(trimmedEmail),
         password: !rules[0].ok || !rules[1].ok ? "A senha ainda não atende às regras abaixo." : "",
         confirmation: !confirmation
             ? "Repita a senha."

@@ -7,6 +7,7 @@ import {
     register as registerRequest,
     logout as logoutRequest,
     deleteAccount as deleteAccountRequest,
+    updateAccount as updateAccountRequest,
 } from "../services/auth";
 import { BEFORE_LOGOUT_EVENT, SESSION_CHECK_EVENT } from "../services/api";
 
@@ -111,6 +112,14 @@ function AuthProvider({ children }) {
         setStatus("anonymous");
     }, []);
 
+    const updateProfile = useCallback(async (changes) => {
+        const data = await updateAccountRequest(changes);
+
+        setUser(data.user);
+
+        return data.user;
+    }, []);
+
     const deleteAccount = useCallback(async (password) => {
         await deleteAccountRequest(password);
 
@@ -122,8 +131,18 @@ function AuthProvider({ children }) {
     // useMemo: o objeto só muda quando user ou status mudam. Sem isso, todo
     // componente que usa useAuth renderizaria de novo a cada render daqui.
     const value = useMemo(
-        () => ({ user, status, signedOutByUser, login, register, logout, deleteAccount, refreshSession }),
-        [user, status, signedOutByUser, login, register, logout, deleteAccount, refreshSession]
+        () => ({
+            user,
+            status,
+            signedOutByUser,
+            login,
+            register,
+            logout,
+            updateProfile,
+            deleteAccount,
+            refreshSession,
+        }),
+        [user, status, signedOutByUser, login, register, logout, updateProfile, deleteAccount, refreshSession]
     );
 
     return (
