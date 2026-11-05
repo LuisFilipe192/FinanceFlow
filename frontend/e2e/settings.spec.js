@@ -18,7 +18,44 @@ function createUser(email = "") {
     return user;
 }
 
+function profilePassword(page) {
+    return page.locator("#profile-password");
+}
+
 test.describe("Configurações", () => {
+    test("trocar a senha encerra as outras sessões e a nova senha passa a valer", async ({ page, browser }) => {
+        const user = createUser();
+        const newPassword = "Nova!Senha-2026";
+
+        const otherDevice = await browser.newPage();
+        await login(otherDevice, user);
+
+        await login(page, user);
+        await page.goto("/settings");
+
+        const changeButton = page.getByRole("button", { name: "Alterar senha" });
+        await expect(changeButton).toBeDisabled();
+
+        await page.locator("#password-current").fill("senha-errada");
+        await page.getByLabel("Nova senha", { exact: true }).fill(newPassword);
+        await page.getByLabel("Confirme a nova senha").fill(newPassword);
+        await changeButton.click();
+        await expect(page.getByText("Senha atual incorreta.")).toBeVisible();
+
+        await page.locator("#password-current").fill(PASSWORD);
+        await changeButton.click();
+        await expect(page.getByText("Senha alterada. As outras sessões abertas foram encerradas.")).toBeVisible();
+
+        await page.reload();
+        await expect(page).toHaveURL("/settings");
+
+        await otherDevice.goto("/transactions");
+        await expect(otherDevice).toHaveURL("/login");
+        await fillLogin(otherDevice, { username: user.username, password: newPassword });
+        await expect(otherDevice).toHaveURL("/transactions");
+        await otherDevice.close();
+    });
+
     test("conta sem e-mail vê o aviso e cadastra um, confirmando a senha", async ({ page }) => {
         const user = createUser();
         const email = `${user.username}@example.com`;
@@ -34,16 +71,16 @@ test.describe("Configurações", () => {
         await save.click();
         await expect(page.getByText("Confirme sua senha para alterar o e-mail.")).toBeVisible();
 
-        await page.getByLabel("Senha atual").fill("senha-errada");
+        await profilePassword(page).fill("senha-errada");
         await save.click();
         await expect(page.getByText("Senha incorreta.")).toBeVisible();
 
-        await page.getByLabel("Senha atual").fill(PASSWORD);
+        await profilePassword(page).fill(PASSWORD);
         await save.click();
 
         await expect(page.getByText("Perfil atualizado.")).toBeVisible();
         await expect(page.getByText("Sua conta ainda não tem e-mail.")).toBeHidden();
-        await expect(page.getByLabel("Senha atual")).toBeHidden();
+        await expect(profilePassword(page)).toBeHidden();
 
         await page.getByRole("button", { name: `Conta de ${user.username}` }).click();
         await page.getByRole("menuitem", { name: "Sair" }).click();
@@ -61,7 +98,7 @@ test.describe("Configurações", () => {
         await page.goto("/settings");
 
         await page.getByLabel("Nome de usuário").fill(newUsername);
-        await expect(page.getByLabel("Senha atual")).toBeHidden();
+        await expect(profilePassword(page)).toBeHidden();
         await page.getByRole("button", { name: "Salvar alterações" }).click();
 
         await expect(page.getByText("Perfil atualizado.")).toBeVisible();

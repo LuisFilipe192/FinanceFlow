@@ -84,6 +84,20 @@ export async function updateAccount(changes) {
     });
 }
 
+export async function changePassword({ currentPassword, newPassword, confirmation }) {
+    await ensureCsrfCookie();
+
+    return apiRequest("/auth/password/", {
+        method: "POST",
+        body: {
+            current_password: currentPassword,
+            new_password: newPassword,
+            new_password_confirmation: confirmation,
+        },
+        fallbackError: "Não foi possível alterar sua senha. Tente novamente.",
+    });
+}
+
 export async function deleteAccount(password) {
     await ensureCsrfCookie();
 

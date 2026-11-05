@@ -7,18 +7,7 @@ import PasswordInput from "../components/auth/PasswordInput";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { getRedirectTarget } from "../utils/authRedirect";
-import { getEmailError, getUsernameError } from "../utils/validation";
-
-// Regras que dá para conferir enquanto a pessoa digita. O Django ainda
-// recusa senhas muito comuns ou parecidas com o usuário: essas mensagens
-// chegam do servidor e aparecem abaixo do campo.
-function getPasswordRules(password, confirmation) {
-    return [
-        { label: "Pelo menos 8 caracteres", ok: password.length >= 8 },
-        { label: "Não pode ser só números", ok: password !== "" && !/^\d+$/.test(password) },
-        { label: "As duas senhas são iguais", ok: confirmation !== "" && confirmation === password },
-    ];
-}
+import { getEmailError, getPasswordRules, getUsernameError } from "../utils/validation";
 
 function Register() {
     const { register } = useAuth();

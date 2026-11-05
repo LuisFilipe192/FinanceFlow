@@ -1,6 +1,6 @@
 import json
 
-from django.contrib.auth import authenticate, get_user_model, login, logout
+from django.contrib.auth import authenticate, get_user_model, login, logout, update_session_auth_hash
 from django.contrib.auth.base_user import BaseUserManager
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
@@ -468,3 +468,71 @@ def account_view(request):
     logout(request)
 
     return HttpResponse(status=204)
+
+
+@never_cache
+@csrf_protect
+@require_POST
+def password_view(request):
+    if not request.user.is_authenticated:
+        return _json_response(
+            {"detail": "Sessão expirada ou usuário não autenticado."},
+            status=401,
+        )
+
+    payload = _json_payload(request)
+    if payload is None:
+        return _json_response(
+            {"detail": "Envie um objeto JSON válido."},
+            status=400,
+        )
+
+    user = request.user
+    current_password = payload.get("current_password")
+    new_password = payload.get("new_password")
+    confirmation = payload.get("new_password_confirmation")
+    errors = {}
+
+    if not isinstance(current_password, str) or not current_password:
+        errors["current_password"] = ["Informe sua senha atual."]
+
+    if not isinstance(new_password, str) or not new_password:
+        errors["new_password"] = ["Informe a nova senha."]
+
+    if not isinstance(confirmation, str) or not confirmation:
+        errors["new_password_confirmation"] = ["Confirme a nova senha."]
+    elif isinstance(new_password, str) and new_password != confirmation:
+        errors["new_password_confirmation"] = ["As senhas não coincidem."]
+
+    if "current_password" not in errors:
+        retry_after = _blocked_for(request, ACCOUNT_PASSWORD_LIMITS)
+        if retry_after:
+            return _too_many_attempts(retry_after)
+
+        if not user.check_password(current_password):
+            _count_attempt(request, ACCOUNT_PASSWORD_LIMITS)
+            errors["current_password"] = ["Senha atual incorreta."]
+
+    if "new_password" not in errors and "current_password" not in errors:
+        if new_password == current_password:
+            errors["new_password"] = ["A nova senha precisa ser diferente da atual."]
+        else:
+            try:
+                validate_password(new_password, user=user)
+            except ValidationError as error:
+                errors["new_password"] = error.messages
+
+    if errors:
+        return _json_response(
+            {
+                "detail": "Revise os dados da senha.",
+                "errors": errors,
+            },
+            status=400,
+        )
+
+    user.set_password(new_password)
+    user.save(update_fields=["password"])
+    update_session_auth_hash(request, user)
+
+    return _json_response({"detail": "Senha alterada."})

@@ -974,3 +974,70 @@ class RegisterEmailTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
+
+
+class PasswordChangeTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.user = User.objects.create_user(username="ana", password="senha-forte-123")
+        self.client.force_login(self.user)
+
+    def tearDown(self):
+        cache.clear()
+
+    def change(self, client=None, **fields):
+        payload = {
+            "current_password": "senha-forte-123",
+            "new_password": "Carteira!Verde42",
+            "new_password_confirmation": "Carteira!Verde42",
+            **fields,
+        }
+        return (client or self.client).post("/api/auth/password/", payload, content_type="application/json")
+
+    def test_changes_password_and_keeps_current_session(self):
+        response = self.change()
+
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("Carteira!Verde42"))
+        self.assertTrue(self.client.get("/api/auth/session/").json()["authenticated"])
+
+    def test_ends_other_sessions(self):
+        other_device = Client()
+        other_device.force_login(self.user)
+
+        self.change()
+
+        self.assertFalse(other_device.get("/api/auth/session/").json()["authenticated"])
+
+    def test_invalid_input_keeps_old_password(self):
+        cases = [
+            ({"current_password": "errada"}, "current_password"),
+            ({"current_password": ""}, "current_password"),
+            ({"new_password": "123", "new_password_confirmation": "123"}, "new_password"),
+            ({"new_password": "senha-forte-123", "new_password_confirmation": "senha-forte-123"}, "new_password"),
+            ({"new_password_confirmation": "outra-coisa"}, "new_password_confirmation"),
+        ]
+
+        for fields, field in cases:
+            with self.subTest(field=field, fields=fields):
+                response = self.change(**fields)
+
+                self.assertEqual(response.status_code, 400)
+                self.assertIn(field, response.json()["errors"])
+                self.user.refresh_from_db()
+                self.assertTrue(self.user.check_password("senha-forte-123"))
+
+    def test_blocks_after_five_wrong_current_passwords(self):
+        for _ in range(5):
+            self.assertEqual(self.change(current_password="errada").status_code, 400)
+
+        self.assertEqual(self.change().status_code, 429)
+
+    def test_requires_csrf_and_login(self):
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.user)
+        self.assertEqual(self.change(client=client).status_code, 403)
+
+        self.client.logout()
+        self.assertEqual(self.change().status_code, 401)
