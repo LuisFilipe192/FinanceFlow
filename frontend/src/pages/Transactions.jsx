@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Plus, Search } from "lucide-react";
 
 import EmptyState from "../components/EmptyState";
+import PageActions from "../components/PageActions";
 import { Skeleton, SkeletonRows } from "../components/Skeleton";
 import TransactionFormModal from "../components/transactions/TransactionFormModal";
 import TransactionList from "../components/transactions/TransactionList";
@@ -373,27 +374,19 @@ function Transactions() {
 
     return (
         <>
+            <PageActions>
+                <button
+                    className="primary-button"
+                    onClick={openCreateForm}
+                    title="Atalho: tecla N"
+                >
+                    <Plus size={18} />
+                    Nova transação
+                    <kbd className="kbd-hint">N</kbd>
+                </button>
+            </PageActions>
+
             <section className="dashboard-section">
-                <div className="section-heading">
-                    <div>
-                        <span className="section-overline">
-                            02 / FINANCIAL MANAGEMENT
-                        </span>
-                        <h2>Transações</h2>
-                        <p>Gerencie suas receitas e despesas.</p>
-                    </div>
-
-                    <button
-                        className="primary-button"
-                        onClick={openCreateForm}
-                        title="Atalho: tecla N"
-                    >
-                        <Plus size={18} />
-                        Nova transação
-                        <kbd className="kbd-hint">N</kbd>
-                    </button>
-                </div>
-
                 <div className="transaction-summary">
                     <div className="transaction-summary-card">
                         <div className="summary-card-top">

@@ -36,10 +36,6 @@ function CategoryChart({ data = [], loading = false }) {
     return (
         <div className="category-chart-card">
             <div className="chart-header">
-                <span className="section-overline">
-                    EXPENSE BREAKDOWN
-                </span>
-
                 <h2>Despesas por categoria</h2>
 
                 <p>Distribuição dos seus gastos</p>

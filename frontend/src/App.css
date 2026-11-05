@@ -49,8 +49,7 @@
 }
 
 .sidebar-label,
-.header-overline,
-.section-overline {
+.header-overline {
     font-size: var(--text-2xs);
     font-weight: 700;
     letter-spacing: 1.5px;
@@ -94,10 +93,34 @@
 }
 
 .header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: "title actions user";
+    align-items: center;
+    column-gap: 16px;
+    row-gap: 20px;
+    margin-bottom: 40px;
+}
+
+.header-title {
+    grid-area: title;
+    min-width: 0;
+}
+
+.page-actions {
+    grid-area: actions;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    margin-bottom: 55px;
+    gap: 12px;
+}
+
+.page-actions:empty {
+    display: none;
+}
+
+.sidebar-label,
+.header-overline {
+    text-transform: uppercase;
 }
 
 .header h1 {
@@ -114,6 +137,7 @@
 }
 
 .header-actions {
+    grid-area: user;
     display: flex;
     align-items: center;
     gap: 15px;
@@ -135,20 +159,6 @@
 
 .dashboard-section {
     margin-bottom: 45px;
-}
-
-.section-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 22px;
-}
-
-.section-heading h2 {
-    margin-top: 8px;
-    font-family: var(--font-heading);
-    font-size: var(--text-xl);
-    color: var(--text-primary);
 }
 
 .summary-grid {
@@ -236,12 +246,20 @@
     }
 
     .header {
-        align-items: flex-start;
-        gap: 15px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "title user"
+            "actions actions";
+        align-items: start;
+        margin-bottom: 28px;
     }
 
     .header h1 {
         font-size: var(--text-2xl);
+    }
+
+    .page-actions > * {
+        flex: 1;
     }
 
     .header-actions {
@@ -269,7 +287,6 @@
 }
 
 .chart-header h2 {
-    margin-top: 10px;
     font-family: var(--font-heading);
     color: var(--text-primary);
     font-size: var(--text-xl);
@@ -1348,6 +1365,33 @@
     border-color: var(--border);
 }
 
+@media (max-width: 700px) {
+    .period-picker {
+        flex-direction: row-reverse;
+        justify-content: space-between;
+    }
+
+    .period-picker .period-current {
+        display: none;
+    }
+
+    .period-control {
+        flex: 1;
+        justify-content: space-between;
+    }
+
+    .period-control .period-label {
+        min-width: 0;
+        white-space: nowrap;
+    }
+}
+
+@media (pointer: coarse) {
+    .kbd-hint {
+        display: none;
+    }
+}
+
 /* Indicador (não clicável) mostrado quando o período é o mês corrente. */
 .period-current {
     display: inline-flex;
@@ -1367,12 +1411,6 @@
     box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-@media (max-width: 700px) {
-    .section-heading {
-        flex-wrap: wrap;
-        gap: 14px;
-    }
-}
 
 
 /* CARDS DE RESUMO: SALDO COM COR */

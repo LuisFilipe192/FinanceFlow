@@ -9,16 +9,6 @@ function Settings() {
 
     return (
         <section className="dashboard-section">
-            <div className="section-heading">
-                <div>
-                    <span className="section-overline">
-                        04 / ACCOUNT
-                    </span>
-                    <h2>Sua conta</h2>
-                    <p>Dados de acesso e exclusão da conta.</p>
-                </div>
-            </div>
-
             <div className="transactions-table-card">
                 <div className="transactions-table-header">
                     <h3>Perfil</h3>

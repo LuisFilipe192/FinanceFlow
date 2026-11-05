@@ -8,6 +8,7 @@ import {
 import SummaryCard from "../components/SummaryCard";
 import InsightBanner from "../components/InsightBanner";
 import PeriodPicker from "../components/PeriodPicker";
+import PageActions from "../components/PageActions";
 
 import MonthlyChart from "../components/MonthlyChart";
 import CategoryChart from "../components/CategoryChart";
@@ -93,24 +94,18 @@ function Dashboard() {
 
     return (
         <>
-            <section className="dashboard-section">
-                <div className="section-heading">
-                    <div>
-                        <span className="section-overline">
-                            01 / FINANCIAL SUMMARY
-                        </span>
-                        <h2>Resumo financeiro</h2>
-                    </div>
+            <PageActions>
+                <PeriodPicker
+                    month={month}
+                    year={year}
+                    onChange={(period) => {
+                        setMonth(period.month);
+                        setYear(period.year);
+                    }}
+                />
+            </PageActions>
 
-                    <PeriodPicker
-                        month={month}
-                        year={year}
-                        onChange={(period) => {
-                            setMonth(period.month);
-                            setYear(period.year);
-                        }}
-                    />
-                </div>
+            <section className="dashboard-section">
 
                 <InsightBanner
                     loading={loading}

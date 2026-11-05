@@ -15,7 +15,7 @@ function Sidebar() {
         <aside className="sidebar">
             <Brand />
 
-            <div className="sidebar-label">WORKSPACE</div>
+            <div className="sidebar-label">Menu</div>
 
             <nav className="sidebar-nav">
                 <NavLink

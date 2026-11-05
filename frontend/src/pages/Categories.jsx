@@ -3,6 +3,7 @@ import { Lock, Pencil, Plus, Tags, Trash2 } from "lucide-react";
 
 import ConfirmDialog from "../components/ConfirmDialog";
 import EmptyState from "../components/EmptyState";
+import PageActions from "../components/PageActions";
 import { SkeletonRows } from "../components/Skeleton";
 import CategoryFormModal from "../components/categories/CategoryFormModal";
 import { useToast } from "../context/ToastContext";
@@ -226,20 +227,12 @@ function Categories() {
 
     return (
         <section className="dashboard-section">
-            <div className="section-heading">
-                <div>
-                    <span className="section-overline">
-                        03 / ORGANIZATION
-                    </span>
-                    <h2>Categorias</h2>
-                    <p>Organize suas receitas e despesas.</p>
-                </div>
-
+            <PageActions>
                 <button className="primary-button" onClick={openCreateForm}>
                     <Plus size={18} />
                     Nova categoria
                 </button>
-            </div>
+            </PageActions>
 
             <div className="transactions-table-card">
                 <div className="transactions-table-header">

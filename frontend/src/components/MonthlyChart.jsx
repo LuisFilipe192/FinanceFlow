@@ -25,10 +25,6 @@ function MonthlyChart({ data = [], loading = false }) {
         <div className="chart-card">
             <div className="chart-header">
                 <div>
-                    <span className="section-overline">
-                        FINANCIAL PERFORMANCE
-                    </span>
-
                     <h2>Movimentação mensal</h2>
                     <p>Receitas e despesas por dia</p>
                 </div>
