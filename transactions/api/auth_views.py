@@ -165,7 +165,7 @@ def login_view(request):
 
     if not isinstance(username, str) or not username.strip():
         return _json_response(
-            {"detail": "Informe o nome de usuário."},
+            {"detail": "Informe o nome de usuário ou e-mail."},
             status=400,
         )
 
@@ -285,8 +285,7 @@ def register_view(request):
             status=400,
         )
 
-    # O projeto usa o backend padrão do Django e não define outros backends.
-    login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+    login(request, user)
 
     return _json_response({
         "authenticated": True,

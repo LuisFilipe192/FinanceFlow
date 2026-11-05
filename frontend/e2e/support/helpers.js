@@ -10,7 +10,7 @@ export async function login(page, user = E2E_USER) {
 }
 
 export async function fillLogin(page, { username, password }) {
-    await page.getByLabel("Nome de usuário").fill(username);
+    await page.getByLabel("Usuário ou e-mail").fill(username);
     // exact: o botão "Mostrar senha" também contém a palavra "senha".
     await page.getByLabel("Senha", { exact: true }).fill(password);
     await page.getByRole("button", { name: "Entrar", exact: true }).click();

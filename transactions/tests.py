@@ -863,3 +863,49 @@ class RateLimitTests(TestCase):
             self.assertEqual(self.client.get("/api/categories/").status_code, 200)
             self.assertEqual(self.client.get("/api/categories/").status_code, 200)
             self.assertEqual(self.client.get("/api/categories/").status_code, 429)
+
+
+class LoginWithEmailTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.user = User.objects.create_user(
+            username="ana",
+            email="ana@example.com",
+            password="senha-forte-123",
+        )
+
+    def tearDown(self):
+        cache.clear()
+
+    def login(self, username, password="senha-forte-123"):
+        return self.client.post(
+            "/api/auth/login/",
+            {"username": username, "password": password},
+            content_type="application/json",
+        )
+
+    def test_logs_in_with_username_or_email(self):
+        for identifier in ("ana", "ana@example.com", "ANA@Example.com"):
+            with self.subTest(identifier=identifier):
+                response = self.login(identifier)
+
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json()["user"]["username"], "ana")
+                self.client.logout()
+
+    def test_wrong_password_with_email_is_rejected(self):
+        self.assertEqual(self.login("ana@example.com", "errada").status_code, 401)
+
+    def test_username_with_at_sign_wins_over_other_users_email(self):
+        other = User.objects.create_user(username="ana@example.com", password="outra-senha-456")
+
+        response = self.login("ana@example.com", "outra-senha-456")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["user"]["id"], other.id)
+
+    def test_inactive_user_cannot_log_in_with_email(self):
+        self.user.is_active = False
+        self.user.save()
+
+        self.assertEqual(self.login("ana@example.com").status_code, 401)

@@ -22,7 +22,7 @@ function Login() {
     const [loading, setLoading] = useState(false);
 
     const fieldErrors = {
-        username: username.trim() ? "" : "Informe seu nome de usuário.",
+        username: username.trim() ? "" : "Informe seu usuário ou e-mail.",
         password: password ? "" : "Informe sua senha.",
     };
     const showUsernameError = submitted && fieldErrors.username;
@@ -73,7 +73,7 @@ function Login() {
                 )}
 
                 <div className="auth-field">
-                    <label htmlFor="login-username">Nome de usuário</label>
+                    <label htmlFor="login-username">Usuário ou e-mail</label>
                     <input
                         id="login-username"
                         type="text"

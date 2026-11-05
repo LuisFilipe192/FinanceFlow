@@ -23,7 +23,7 @@ test.describe("Login", () => {
 
         await expect(page.getByRole("alert")).toHaveText("Usuário ou senha inválidos.");
         await expect(page.getByLabel("Senha", { exact: true })).toHaveValue("");
-        await expect(page.getByLabel("Nome de usuário")).toHaveValue("e2e_nao_existe");
+        await expect(page.getByLabel("Usuário ou e-mail")).toHaveValue("e2e_nao_existe");
         await expect(page).toHaveURL("/login");
     });
 
@@ -57,7 +57,7 @@ test.describe("Login", () => {
 
         await page.getByRole("button", { name: "Entrar", exact: true }).click();
 
-        await expect(page.getByText("Informe seu nome de usuário.")).toBeVisible();
+        await expect(page.getByText("Informe seu usuário ou e-mail.")).toBeVisible();
         await expect(page.getByText("Informe sua senha.")).toBeVisible();
     });
 
