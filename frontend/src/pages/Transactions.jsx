@@ -3,11 +3,13 @@ import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Plus, Search } from "lucid
 
 import EmptyState from "../components/EmptyState";
 import PageActions from "../components/PageActions";
+import PeriodPicker from "../components/PeriodPicker";
 import { Skeleton, SkeletonRows } from "../components/Skeleton";
 import TransactionFormModal from "../components/transactions/TransactionFormModal";
 import TransactionList from "../components/transactions/TransactionList";
 import { useToast } from "../context/ToastContext";
 import { formatCurrency, pluralize } from "../utils/format";
+import { MONTH_NAMES } from "../utils/insights";
 import { BEFORE_LOGOUT_EVENT } from "../services/api";
 import { getDashboard } from "../services/dashboard";
 import {
@@ -34,17 +36,26 @@ const TYPE_FILTERS = [
 // Tempo para desfazer uma exclusão antes de ela ir para o servidor.
 const UNDO_DELAY = 5000;
 
-function isInCurrentPeriod(transaction) {
-    const { month, year } = getCurrentPeriod();
-    const [transactionYear, transactionMonth] = transaction.date.split("-").map(Number);
+function getTransactionPeriod(transaction) {
+    const [year, month] = transaction.date.split("-").map(Number);
 
-    return transactionYear === year && transactionMonth === month;
+    return { month, year };
+}
+
+function isInPeriod(transaction, period) {
+    const { month, year } = getTransactionPeriod(transaction);
+
+    return year === period.year && month === period.month;
+}
+
+function formatPeriod({ month, year }) {
+    return `${MONTH_NAMES[month - 1]} de ${year}`;
 }
 
 // Soma (sign = 1) ou subtrai (sign = -1) uma transação do resumo do mês, para
 // os cards reagirem na hora, sem esperar o servidor.
-function applyToSummary(summary, transaction, sign) {
-    if (!isInCurrentPeriod(transaction)) return summary;
+function applyToSummary(summary, transaction, sign, period) {
+    if (!isInPeriod(transaction, period)) return summary;
 
     const amount = Number(transaction.amount) * sign;
     const income = Number(summary.income) + (transaction.type === "INCOME" ? amount : 0);
@@ -59,6 +70,13 @@ function isTypingInField(target) {
 
 function Transactions() {
     const showToast = useToast();
+
+    const [period, setPeriod] = useState(getCurrentPeriod);
+    const periodRef = useRef(period);
+
+    useEffect(() => {
+        periodRef.current = period;
+    }, [period]);
 
     const [transactions, setTransactions] = useState([]);
     const [categories, setCategories] = useState([]);
@@ -82,6 +100,19 @@ function Transactions() {
 
     // Exclusões aguardando os 5 segundos do "Desfazer": id -> { transaction, timer }.
     const pendingDeletes = useRef(new Map());
+    const pendingHighlight = useRef(null);
+
+    useEffect(() => {
+        const controller = new AbortController();
+
+        getCategories({ signal: controller.signal })
+            .then(setCategories)
+            .catch((requestError) => {
+                if (requestError.name !== "AbortError") console.error(requestError);
+            });
+
+        return () => controller.abort();
+    }, []);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -90,16 +121,22 @@ function Transactions() {
         async function loadData() {
             try {
                 setLoading(true);
+                setError(null);
 
-                const [transactionData, categoryData, dashboardData] = await Promise.all([
-                    getTransactions({ signal }),
-                    getCategories({ signal }),
-                    getDashboard({ ...getCurrentPeriod(), signal }),
+                const [transactionData, dashboardData] = await Promise.all([
+                    getTransactions({ ...period, signal }),
+                    getDashboard({ ...period, signal }),
                 ]);
 
                 setTransactions(transactionData);
-                setCategories(categoryData);
                 setSummary(dashboardData.summary);
+
+                const highlightedId = pendingHighlight.current;
+                if (highlightedId) {
+                    pendingHighlight.current = null;
+                    setHighlightId(highlightedId);
+                    setTimeout(() => setHighlightId(null), 1600);
+                }
             } catch (error) {
                 if (error.name !== "AbortError") {
                     console.error(error);
@@ -115,7 +152,7 @@ function Transactions() {
         loadData();
 
         return () => controller.abort();
-    }, []);
+    }, [period]);
 
     // Atalho: N abre uma nova transação (fora de campos de texto e de modais).
     useEffect(() => {
@@ -181,7 +218,7 @@ function Transactions() {
 
     async function refreshFinancialSummary() {
         try {
-            const dashboardData = await getDashboard(getCurrentPeriod());
+            const dashboardData = await getDashboard(periodRef.current);
             setSummary(dashboardData.summary);
             return dashboardData.summary;
         } catch (error) {
@@ -211,44 +248,67 @@ function Transactions() {
     }
 
     async function handleTransactionSaved(savedTransaction, isEditing) {
-        const isFirstTransaction = !isEditing && transactions.length === 0;
+        const inPeriod = isInPeriod(savedTransaction, period);
 
-        setTransactions((previous) =>
-            isEditing
+        setTransactions((previous) => {
+            const others = previous.filter((transaction) => transaction.id !== savedTransaction.id);
+
+            if (!inPeriod) return others;
+
+            return isEditing
                 ? previous.map((transaction) =>
                     transaction.id === savedTransaction.id
                         ? savedTransaction
                         : transaction
                 )
-                : [savedTransaction, ...previous]
-        );
+                : [savedTransaction, ...previous];
+        });
 
         const updatedSummary = await refreshFinancialSummary();
         closeForm();
-        highlight(savedTransaction.id);
 
         const typeLabel = savedTransaction.type === "INCOME" ? "Receita" : "Despesa";
+        const savedText = isEditing
+            ? "Transação atualizada."
+            : `${typeLabel} de ${formatCurrency(savedTransaction.amount)} registrada.`;
+
+        if (!inPeriod) {
+            const savedPeriod = getTransactionPeriod(savedTransaction);
+
+            showToast({
+                type: "success",
+                message: `${savedText} Ela está em ${formatPeriod(savedPeriod)}.`,
+                action: {
+                    label: "Ver",
+                    onClick: () => {
+                        pendingHighlight.current = savedTransaction.id;
+                        setPeriod(savedPeriod);
+                    },
+                },
+            });
+            return;
+        }
+
+        highlight(savedTransaction.id);
+
         const balanceText = updatedSummary
-            ? ` Saldo do mês: ${formatCurrency(updatedSummary.balance)}.`
+            ? ` Saldo de ${MONTH_NAMES[period.month - 1]}: ${formatCurrency(updatedSummary.balance)}.`
             : "";
 
-        showToast({
-            type: "success",
-            message: isFirstTransaction
-                ? "Primeira transação registrada! Agora é só acompanhar."
-                : isEditing
-                    ? `Transação atualizada.${balanceText}`
-                    : `${typeLabel} de ${formatCurrency(savedTransaction.amount)} registrada.${balanceText}`,
-        });
+        showToast({ type: "success", message: `${savedText}${balanceText}` });
     }
 
     function restoreTransaction(transaction) {
+        const currentPeriod = periodRef.current;
+
+        if (!isInPeriod(transaction, currentPeriod)) return;
+
         setTransactions((previous) =>
             previous.some((item) => item.id === transaction.id)
                 ? previous
                 : [...previous, transaction]
         );
-        setSummary((previous) => applyToSummary(previous, transaction, 1));
+        setSummary((previous) => applyToSummary(previous, transaction, 1, currentPeriod));
     }
 
     async function commitDelete(transaction) {
@@ -285,7 +345,7 @@ function Transactions() {
         setTransactions((previous) =>
             previous.filter((item) => item.id !== transaction.id)
         );
-        setSummary((previous) => applyToSummary(previous, transaction, -1));
+        setSummary((previous) => applyToSummary(previous, transaction, -1, period));
 
         const timer = setTimeout(() => commitDelete(transaction), UNDO_DELAY);
         pendingDeletes.current.set(transaction.id, { transaction, timer });
@@ -331,12 +391,12 @@ function Transactions() {
             return (
                 <EmptyState
                     icon={<ArrowLeftRight size={24} />}
-                    title="Tudo calmo por aqui"
-                    description="Que tal registrar seu primeiro gasto ou receita? Em segundos você já vê para onde vai o seu dinheiro."
+                    title={`Nada registrado em ${formatPeriod(period)}`}
+                    description="Registre um gasto ou uma receita e veja para onde vai o seu dinheiro."
                     action={
                         <button className="primary-button" onClick={openCreateForm}>
                             <Plus size={18} />
-                            Adicionar primeira transação
+                            Adicionar transação
                         </button>
                     }
                 />
@@ -375,6 +435,12 @@ function Transactions() {
     return (
         <>
             <PageActions>
+                <PeriodPicker
+                    month={period.month}
+                    year={period.year}
+                    onChange={setPeriod}
+                />
+
                 <button
                     className="primary-button"
                     onClick={openCreateForm}
@@ -390,7 +456,7 @@ function Transactions() {
                 <div className="transaction-summary">
                     <div className="transaction-summary-card">
                         <div className="summary-card-top">
-                            <span>Receitas do mês</span>
+                            <span>Receitas de {MONTH_NAMES[period.month - 1]}</span>
                             <div className="summary-icon income">
                                 <ArrowDownLeft size={18} />
                             </div>
@@ -405,13 +471,13 @@ function Transactions() {
                         )}
 
                         <span className="summary-description">
-                            Total recebido neste mês
+                            Total recebido no mês
                         </span>
                     </div>
 
                     <div className="transaction-summary-card">
                         <div className="summary-card-top">
-                            <span>Despesas do mês</span>
+                            <span>Despesas de {MONTH_NAMES[period.month - 1]}</span>
                             <div className="summary-icon expense">
                                 <ArrowUpRight size={18} />
                             </div>
@@ -426,7 +492,7 @@ function Transactions() {
                         )}
 
                         <span className="summary-description">
-                            Total gasto neste mês
+                            Total gasto no mês
                         </span>
                     </div>
                 </div>

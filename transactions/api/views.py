@@ -85,9 +85,27 @@ def dashboard_api(request):
 def transactions_api(request):
 
     if request.method == "GET":
+        period_serializer = DashboardPeriodSerializer(
+            data=request.query_params
+        )
+        period_serializer.is_valid(raise_exception=True)
+        period = period_serializer.validated_data
+
+        if "month" in period and "year" not in period:
+            return Response(
+                {"year": ["Informe o ano junto com o mês."]},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         transactions = Transaction.objects.filter(
             user=request.user
         ).select_related("category").order_by("-date", "-id")
+
+        if "year" in period:
+            transactions = transactions.filter(date__year=period["year"])
+
+        if "month" in period:
+            transactions = transactions.filter(date__month=period["month"])
 
         serializer = TransactionSerializer(
             transactions,

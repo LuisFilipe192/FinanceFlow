@@ -66,6 +66,38 @@ test.describe("Transações", () => {
         await expect(page.locator(".transaction-row", { hasText: `${description} editada` })).toBeVisible();
     });
 
+    test("mudar a data para outro mês tira a transação da lista e o aviso leva até ela", async ({ page }) => {
+        const description = `Mudança de mês e2e ${Date.now()}`;
+        const row = await createExpense(page, description);
+
+        const today = new Date();
+        const previous = new Date(today.getFullYear(), today.getMonth() - 1, 15);
+        const typedDate = previous.toLocaleDateString("pt-BR");
+        const previousMonthName = previous.toLocaleDateString("pt-BR", { month: "long" });
+
+        await row.hover();
+        await row.getByRole("button", { name: `Editar ${description}` }).click();
+
+        const dialog = page.getByRole("dialog", { name: "Editar transação" });
+        const dateInput = dialog.getByLabel("Data");
+        await dateInput.fill(typedDate);
+        await dateInput.press("Enter");
+        await dialog.getByRole("button", { name: "Salvar alterações" }).click();
+
+        const toast = page.locator(".notification", { hasText: `Ela está em ${previousMonthName} de ${previous.getFullYear()}.` });
+        await expect(toast).toBeVisible();
+        await expect(page.locator(".transaction-row", { hasText: description })).toHaveCount(0);
+
+        await toast.getByRole("button", { name: "Ver" }).click();
+
+        const periodLabel = page.locator(".period-label");
+        await expect(periodLabel).toContainText(new RegExp(previousMonthName, "i"));
+        await expect(page.locator(".transaction-row", { hasText: description })).toBeVisible();
+
+        await page.getByRole("button", { name: "Próximo mês" }).click();
+        await expect(page.locator(".transaction-row", { hasText: description })).toHaveCount(0);
+    });
+
     test("excluir e desfazer devolve a transação", async ({ page }) => {
         const description = `Cinema e2e ${Date.now()}`;
         const row = await createExpense(page, description);

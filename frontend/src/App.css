@@ -292,8 +292,16 @@
         font-size: var(--text-2xl);
     }
 
+    .page-actions {
+        flex-wrap: wrap;
+    }
+
     .page-actions > * {
         flex: 1;
+    }
+
+    .page-actions > .period-picker {
+        flex-basis: 100%;
     }
 
     .header-actions {

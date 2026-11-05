@@ -1,7 +1,14 @@
 import { apiRequest } from "./api";
 
-export function getTransactions({ signal } = {}) {
-    return apiRequest("/transactions/", {
+export function getTransactions({ month, year, signal } = {}) {
+    const params = new URLSearchParams();
+
+    if (month) params.set("month", month);
+    if (year) params.set("year", year);
+
+    const queryString = params.toString();
+
+    return apiRequest(`/transactions/${queryString ? `?${queryString}` : ""}`, {
         signal,
         fallbackError: "Erro ao buscar transações.",
     });

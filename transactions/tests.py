@@ -1106,3 +1106,45 @@ class CategoryBudgetTests(TestCase):
 
     def test_empty_patch_is_rejected(self):
         self.assertEqual(self.patch({}).status_code, 400)
+
+
+class TransactionPeriodFilterTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="ana", password="senha-forte-123")
+        self.other = User.objects.create_user(username="bruno", password="senha-forte-123")
+        self.client.force_login(self.user)
+
+        for user, description, day in [
+            (self.user, "Outubro", date(2026, 10, 31)),
+            (self.user, "Novembro", date(2026, 11, 1)),
+            (self.user, "Ano passado", date(2025, 11, 10)),
+            (self.other, "De outra pessoa", date(2026, 11, 2)),
+        ]:
+            Transaction.objects.create(
+                user=user,
+                description=description,
+                amount=Decimal("10.00"),
+                type=Transaction.Type.EXPENSE,
+                date=day,
+            )
+
+    def descriptions(self, query=""):
+        response = self.client.get(f"/api/transactions/{query}")
+        self.assertEqual(response.status_code, 200)
+        return [item["description"] for item in response.json()]
+
+    def test_without_period_returns_everything_from_the_user(self):
+        self.assertEqual(self.descriptions(), ["Novembro", "Outubro", "Ano passado"])
+
+    def test_filters_by_month_and_year(self):
+        self.assertEqual(self.descriptions("?month=11&year=2026"), ["Novembro"])
+        self.assertEqual(self.descriptions("?month=10&year=2026"), ["Outubro"])
+        self.assertEqual(self.descriptions("?month=12&year=2026"), [])
+
+    def test_filters_by_year_only(self):
+        self.assertEqual(self.descriptions("?year=2025"), ["Ano passado"])
+
+    def test_invalid_period_is_rejected(self):
+        for query in ("?month=13&year=2026", "?month=abc&year=2026", "?month=11", "?year=1999"):
+            with self.subTest(query=query):
+                self.assertEqual(self.client.get(f"/api/transactions/{query}").status_code, 400)
