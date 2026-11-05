@@ -658,3 +658,112 @@ class AccountDeletionTests(TestCase):
             self.delete_account({"password": "senha-forte-123"}).status_code,
             401,
         )
+
+
+class AccountUpdateTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="ana",
+            email="ana@example.com",
+            password="senha-forte-123",
+        )
+        self.other_user = User.objects.create_user(
+            username="bruno",
+            email="bruno@example.com",
+            password="senha-forte-123",
+        )
+
+        self.client.force_login(self.user)
+
+    def update_account(self, payload, client=None):
+        return (client or self.client).patch(
+            "/api/auth/account/",
+            payload,
+            content_type="application/json",
+        )
+
+    def test_changes_username(self):
+        response = self.update_account({"username": "  ana.silva "})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["user"]["username"], "ana.silva")
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.username, "ana.silva")
+
+    def test_username_taken_or_invalid_is_rejected(self):
+        for username in ("bruno", "", "ana silva"):
+            with self.subTest(username=username):
+                response = self.update_account({"username": username})
+
+                self.assertEqual(response.status_code, 400)
+                self.assertIn("username", response.json()["errors"])
+                self.user.refresh_from_db()
+                self.assertEqual(self.user.username, "ana")
+
+    def test_keeping_the_same_data_does_not_ask_for_password(self):
+        response = self.update_account({"username": "ana", "email": "ana@example.com"})
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_changing_email_requires_correct_password(self):
+        for payload in (
+            {"email": "nova@example.com"},
+            {"email": "nova@example.com", "password": "errada"},
+        ):
+            with self.subTest(payload=payload):
+                response = self.update_account(payload)
+
+                self.assertEqual(response.status_code, 400)
+                self.assertIn("password", response.json()["errors"])
+                self.user.refresh_from_db()
+                self.assertEqual(self.user.email, "ana@example.com")
+
+    def test_changes_email_with_password_and_normalizes_domain(self):
+        response = self.update_account({
+            "email": " Ana.Nova@EXAMPLE.com ",
+            "password": "senha-forte-123",
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["user"]["email"], "Ana.Nova@example.com")
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, "Ana.Nova@example.com")
+
+    def test_email_in_use_or_invalid_is_rejected(self):
+        for email in ("BRUNO@example.com", "nao-e-email", ""):
+            with self.subTest(email=email):
+                response = self.update_account({
+                    "email": email,
+                    "password": "senha-forte-123",
+                })
+
+                self.assertEqual(response.status_code, 400)
+                self.assertIn("email", response.json()["errors"])
+
+    def test_database_rejects_duplicate_email_ignoring_case(self):
+        with self.assertRaises(IntegrityError):
+            User.objects.create_user(username="carla", email="ANA@example.com", password="x")
+
+    def test_users_without_email_do_not_conflict(self):
+        User.objects.create_user(username="carla", password="x")
+        User.objects.create_user(username="davi", password="x")
+
+        self.assertEqual(User.objects.filter(email="").count(), 2)
+
+    def test_empty_payload_is_rejected(self):
+        response = self.update_account({})
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_requires_csrf_token(self):
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.user)
+
+        response = self.update_account({"username": "ana.silva"}, client=client)
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_anonymous_cannot_update(self):
+        self.client.logout()
+
+        self.assertEqual(self.update_account({"username": "x"}).status_code, 401)

@@ -1,7 +1,9 @@
 import json
 
 from django.contrib.auth import authenticate, get_user_model, login, logout
+from django.contrib.auth.base_user import BaseUserManager
 from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse, JsonResponse
 from django.views.csrf import csrf_failure as django_csrf_failure
@@ -30,7 +32,49 @@ def _user_data(user):
     return {
         "id": user.pk,
         "username": user.get_username(),
+        "email": user.email,
     }
+
+
+def _clean_username(raw_username, candidate, exclude_pk=None):
+    if not isinstance(raw_username, str) or not raw_username.strip():
+        return None, "Informe o nome de usuário."
+
+    User = get_user_model()
+    username_field = User._meta.get_field(User.USERNAME_FIELD)
+
+    try:
+        username = username_field.clean(raw_username.strip(), candidate)
+    except ValidationError:
+        return None, "Informe um nome de usuário válido."
+
+    if User._default_manager.filter(
+        **{User.USERNAME_FIELD: username}
+    ).exclude(pk=exclude_pk).exists():
+        return None, "Este nome de usuário não está disponível."
+
+    return username, None
+
+
+def _clean_email(raw_email, exclude_pk=None):
+    if not isinstance(raw_email, str) or not raw_email.strip():
+        return None, "Informe seu e-mail."
+
+    email = BaseUserManager.normalize_email(raw_email.strip())
+
+    try:
+        if len(email) > 254:
+            raise ValidationError("E-mail longo demais.")
+        validate_email(email)
+    except ValidationError:
+        return None, "Informe um e-mail válido."
+
+    if get_user_model()._default_manager.filter(
+        email__iexact=email
+    ).exclude(pk=exclude_pk).exists():
+        return None, "Este e-mail já está em uso."
+
+    return email, None
 
 
 def csrf_failure(request, reason=""):
@@ -126,8 +170,14 @@ def register_view(request):
     password_confirmation = payload.get("password_confirmation")
     errors = {}
 
-    if not isinstance(raw_username, str) or not raw_username.strip():
-        errors["username"] = ["Informe o nome de usuário."]
+    User = get_user_model()
+    candidate = User()
+
+    username, username_error = _clean_username(raw_username, candidate)
+    if username_error:
+        errors["username"] = [username_error]
+    else:
+        setattr(candidate, User.USERNAME_FIELD, username)
 
     if not isinstance(password, str) or not password:
         errors["password"] = ["Informe uma senha."]
@@ -136,23 +186,6 @@ def register_view(request):
         errors["password_confirmation"] = ["Confirme a senha."]
     elif isinstance(password, str) and password != password_confirmation:
         errors["password_confirmation"] = ["As senhas não coincidem."]
-
-    User = get_user_model()
-    username = None
-    candidate = User()
-
-    if "username" not in errors:
-        username_field = User._meta.get_field(User.USERNAME_FIELD)
-        try:
-            username = username_field.clean(raw_username.strip(), candidate)
-            setattr(candidate, User.USERNAME_FIELD, username)
-        except ValidationError:
-            errors["username"] = ["Informe um nome de usuário válido."]
-
-    if username is not None and User._default_manager.filter(
-        **{User.USERNAME_FIELD: username}
-    ).exists():
-        errors["username"] = ["Este nome de usuário não está disponível."]
 
     if isinstance(password, str) and password and username is not None:
         try:
@@ -217,11 +250,95 @@ def logout_view(request):
     return HttpResponse(status=204)
 
 
+def _update_account(request, user):
+    payload = _json_payload(request)
+    if payload is None:
+        return _json_response(
+            {"detail": "Envie um objeto JSON válido."},
+            status=400,
+        )
+
+    if "username" not in payload and "email" not in payload:
+        return _json_response(
+            {"detail": "Envie o nome de usuário ou o e-mail para alterar."},
+            status=400,
+        )
+
+    User = get_user_model()
+    errors = {}
+    changes = {}
+
+    if "username" in payload:
+        username, error = _clean_username(payload["username"], user, exclude_pk=user.pk)
+        if error:
+            errors["username"] = [error]
+        elif username != user.get_username():
+            changes[User.USERNAME_FIELD] = username
+
+    if "email" in payload:
+        email, error = _clean_email(payload["email"], exclude_pk=user.pk)
+        if error:
+            errors["email"] = [error]
+        elif email != user.email:
+            changes["email"] = email
+
+    if "email" in changes:
+        password = payload.get("password")
+
+        if not isinstance(password, str) or not password:
+            errors["password"] = ["Confirme sua senha para alterar o e-mail."]
+        elif not user.check_password(password):
+            errors["password"] = ["Senha incorreta."]
+
+    if errors:
+        return _json_response(
+            {
+                "detail": "Revise os dados do perfil.",
+                "errors": errors,
+            },
+            status=400,
+        )
+
+    if changes:
+        for field, value in changes.items():
+            setattr(user, field, value)
+
+        try:
+            with transaction.atomic():
+                user.save(update_fields=list(changes))
+        except IntegrityError:
+            others = User._default_manager.exclude(pk=user.pk)
+            conflicts = {}
+
+            if User.USERNAME_FIELD in changes and others.filter(
+                **{User.USERNAME_FIELD: changes[User.USERNAME_FIELD]}
+            ).exists():
+                conflicts["username"] = ["Este nome de usuário não está disponível."]
+
+            if "email" in changes and others.filter(
+                email__iexact=changes["email"]
+            ).exists():
+                conflicts["email"] = ["Este e-mail já está em uso."]
+
+            if not conflicts:
+                raise
+
+            return _json_response(
+                {
+                    "detail": "Revise os dados do perfil.",
+                    "errors": conflicts,
+                },
+                status=400,
+            )
+
+    return _json_response({"user": _user_data(user)})
+
+
 @never_cache
 @csrf_protect
-@require_http_methods(["GET", "DELETE"])
+@require_http_methods(["GET", "PATCH", "DELETE"])
 def account_view(request):
-    """GET mostra o que será apagado; DELETE exclui a conta (LGPD, art. 18)."""
+    """GET mostra o que será apagado; PATCH edita o perfil; DELETE exclui a conta (LGPD, art. 18)."""
     if not request.user.is_authenticated:
         return _json_response(
             {"detail": "Sessão expirada ou usuário não autenticado."},
@@ -236,6 +353,9 @@ def account_view(request):
             "transactions": user.transactions.count(),
             "categories": user.categories.count(),
         })
+
+    if request.method == "PATCH":
+        return _update_account(request, user)
 
     payload = _json_payload(request)
     if payload is None:
