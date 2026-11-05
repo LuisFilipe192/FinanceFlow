@@ -83,6 +83,11 @@ body {
     background: var(--bg-primary);
 }
 
+html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+}
+
 button,
 input {
     font: inherit;
@@ -90,6 +95,14 @@ input {
 
 button {
     cursor: pointer;
+}
+
+button,
+a,
+[role="button"] {
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 a {

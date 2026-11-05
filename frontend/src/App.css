@@ -6,6 +6,7 @@
 .sidebar {
     width: 250px;
     height: 100vh;
+    height: 100dvh;
     position: fixed;
     top: 0;
     left: 0;
@@ -220,29 +221,56 @@
 
 @media (max-width: 700px) {
     .sidebar {
-        width: 70px;
-        padding: 25px 10px;
+        top: auto;
+        bottom: 0;
+        z-index: 50;
+        width: 100%;
+        height: auto;
+        padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+        border-right: none;
+        border-top: 1px solid var(--border);
     }
 
-    .brand {
-        justify-content: center;
-        margin-bottom: 40px;
-    }
-
-    .brand > span,
-    .sidebar-label,
-    .nav-item span {
+    .sidebar .brand,
+    .sidebar-label {
         display: none;
     }
 
+    .sidebar-nav {
+        flex-direction: row;
+        gap: 4px;
+    }
+
     .nav-item {
+        flex: 1;
+        flex-direction: column;
         justify-content: center;
-        padding: 13px 5px;
+        gap: 4px;
+        min-width: 0;
+        padding: 8px 2px;
+        font-size: var(--text-2xs);
+        font-weight: 600;
+        transition: color 150ms ease, transform 120ms var(--ease-out);
+    }
+
+    .nav-item:active {
+        transform: scale(0.95);
+    }
+
+    .nav-item.active {
+        background: transparent;
+    }
+
+    .nav-item span {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .main-content {
-        margin-left: 70px;
-        padding: 25px 15px;
+        margin-left: 0;
+        padding: 20px 16px calc(96px + env(safe-area-inset-bottom, 0px));
     }
 
     .header {
@@ -1075,14 +1103,22 @@
     }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 700px) {
     .notification {
-        top: 16px;
-        bottom: auto;
+        bottom: calc(80px + env(safe-area-inset-bottom, 0px));
         right: 12px;
         left: 12px;
         min-width: 0;
         max-width: none;
+    }
+}
+
+@media (pointer: coarse) {
+    .search-box input,
+    .transaction-modal form input,
+    .transaction-modal form select,
+    .react-datepicker__input-container input {
+        font-size: var(--text-md);
     }
 }
 
