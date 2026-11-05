@@ -17,14 +17,53 @@
 
     --text-primary: #e8eae9;
     --text-secondary: #929b95;
+    --text-muted: #59625c;
 
     --accent: #b5f56a;
+    --accent-hover: #c8ff8d;
+    --accent-soft: rgba(181, 245, 106, 0.12);
+    --accent-subtle: rgba(181, 245, 106, 0.08);
+    --accent-border: rgba(181, 245, 106, 0.35);
+    --on-accent: #10150c;
+    --avatar-bg: #34442d;
+
     --danger: #f17c7c;
     --danger-strong: #dc4545;
     --danger-strong-hover: #bd3535;
+    --danger-soft: rgba(241, 124, 124, 0.12);
+    --danger-subtle: rgba(241, 124, 124, 0.08);
+    --danger-border: rgba(241, 124, 124, 0.35);
+    --on-danger: #ffffff;
+
+    --warning: #e5b567;
+    --warning-soft: rgba(229, 181, 103, 0.12);
+    --warning-border: rgba(229, 181, 103, 0.35);
+
     --info: #8bb8ff;
+    --info-soft: rgba(139, 184, 255, 0.12);
+
     --border: #29312c;
+    --border-strong: #2e3832;
     --surface-hover: #252e28;
+    --surface-stripe: rgba(255, 255, 255, 0.02);
+
+    --text-2xs: 11px;
+    --text-xs: 12px;
+    --text-sm: 13px;
+    --text-base: 14px;
+    --text-md: 16px;
+    --text-lg: 17px;
+    --text-xl: 22px;
+    --text-2xl: 26px;
+    --text-3xl: 32px;
+    --text-4xl: 40px;
+
+    --radius-xs: 4px;
+    --radius-sm: 8px;
+    --radius-md: 10px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-2xl: 20px;
 
     /* Curva ease-out forte: resposta imediata, final suave. */
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1);

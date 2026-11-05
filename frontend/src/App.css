@@ -24,7 +24,7 @@
     gap: 12px;
 
     font-family: var(--font-heading);
-    font-size: 21px;
+    font-size: var(--text-xl);
     font-weight: 700;
     color: var(--text-primary);
     margin-bottom: 55px;
@@ -38,8 +38,8 @@
     justify-content: center;
 
     background: var(--accent);
-    color: #10150c;
-    border-radius: 10px;
+    color: var(--on-accent);
+    border-radius: var(--radius-md);
 }
 
 .brand-highlight,
@@ -51,7 +51,7 @@
 .sidebar-label,
 .header-overline,
 .section-overline {
-    font-size: 10px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     letter-spacing: 1.5px;
     color: var(--text-secondary);
@@ -74,16 +74,16 @@
     gap: 12px;
 
     padding: 12px;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
 
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: var(--text-base);
     transition: background-color 150ms ease, color 150ms ease;
 }
 
 .nav-item:hover,
 .nav-item.active {
-    background: #252e28;
+    background: var(--surface-hover);
     color: var(--accent);
 }
 
@@ -103,14 +103,14 @@
 .header h1 {
     margin: 12px 0 5px;
     font-family: var(--font-heading);
-    font-size: 34px;
+    font-size: var(--text-3xl);
     font-weight: 600;
     color: var(--text-primary);
 }
 
 .header p {
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: var(--text-base);
 }
 
 .header-actions {
@@ -126,11 +126,11 @@
     align-items: center;
     justify-content: center;
 
-    background: #34442d;
+    background: var(--avatar-bg);
     color: var(--accent);
     border-radius: 50%;
     font-weight: 700;
-    font-size: 13px;
+    font-size: var(--text-sm);
 }
 
 .dashboard-section {
@@ -147,7 +147,7 @@
 .section-heading h2 {
     margin-top: 8px;
     font-family: var(--font-heading);
-    font-size: 22px;
+    font-size: var(--text-xl);
     color: var(--text-primary);
 }
 
@@ -161,7 +161,7 @@
     padding: 24px;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
 }
 
 .summary-card-top {
@@ -170,20 +170,20 @@
     justify-content: space-between;
 
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: var(--text-base);
 }
 
 .summary-card h2 {
     margin: 24px 0 8px;
     font-family: var(--font-heading);
-    font-size: 27px;
+    font-size: var(--text-2xl);
     font-weight: 600;
     color: var(--text-primary);
 }
 
 .summary-card p {
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: var(--text-xs);
 }
 
 .summary-card.income .summary-card-top svg {
@@ -195,7 +195,7 @@
 }
 
 .summary-card.balance .summary-card-top svg {
-    color: #8bb8ff;
+    color: var(--info);
 }
 
 @media (max-width: 1000px) {
@@ -241,7 +241,7 @@
     }
 
     .header h1 {
-        font-size: 25px;
+        font-size: var(--text-2xl);
     }
 
     .header-actions {
@@ -261,7 +261,7 @@
     padding: 28px;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
 }
 
 .chart-header {
@@ -272,13 +272,13 @@
     margin-top: 10px;
     font-family: var(--font-heading);
     color: var(--text-primary);
-    font-size: 22px;
+    font-size: var(--text-xl);
 }
 
 .chart-header p {
     margin-top: 6px;
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: var(--text-sm);
 }
 
 .chart-container {
@@ -300,7 +300,7 @@
     padding: 28px;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
 }
 
 .category-chart-container {
@@ -325,13 +325,13 @@
 
 .category-chart-center span {
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: var(--text-xs);
 }
 
 .category-chart-center strong {
     color: var(--text-primary);
     font-family: var(--font-heading);
-    font-size: 17px;
+    font-size: var(--text-lg);
 }
 
 @media (max-width: 700px) {
@@ -365,7 +365,7 @@
 
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 9px;
+    border-radius: var(--radius-sm);
     color: var(--text-secondary);
 }
 
@@ -379,7 +379,7 @@
     border: none;
     outline: none;
     color: var(--text-primary);
-    font-size: 13px;
+    font-size: var(--text-sm);
 }
 
 .search-box input::placeholder {
@@ -394,11 +394,11 @@
 
     padding: 12px 17px;
     background: var(--accent);
-    color: #10150c;
+    color: var(--on-accent);
 
     border: none;
-    border-radius: 9px;
-    font-size: 13px;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
     font-weight: 700;
     cursor: pointer;
     transition: background-color 150ms ease, transform 120ms var(--ease-out);
@@ -409,14 +409,14 @@
 }
 
 .primary-button:hover {
-    background: #c8ff8d;
+    background: var(--accent-hover);
 }
 
 .transactions-table-card {
     padding: 25px;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
 }
 
 .transactions-table-header {
@@ -429,12 +429,12 @@
 .transactions-table-header h3 {
     color: var(--text-primary);
     font-family: var(--font-heading);
-    font-size: 17px;
+    font-size: var(--text-lg);
 }
 
 .transactions-table-header span {
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: var(--text-xs);
 }
 
 .transactions-empty {
@@ -454,20 +454,20 @@
     align-items: center;
     justify-content: center;
 
-    background: #252e28;
+    background: var(--surface-hover);
     color: var(--accent);
-    border-radius: 15px;
+    border-radius: var(--radius-xl);
 }
 
 .transactions-empty h3 {
     color: var(--text-primary);
     font-family: var(--font-heading);
-    font-size: 16px;
+    font-size: var(--text-md);
 }
 
 .transactions-empty p {
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: var(--text-sm);
     margin-bottom: 8px;
 }
 
@@ -496,7 +496,7 @@
 .transaction-summary-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: var(--radius-xl);
     padding: 24px;
     display: flex;
     flex-direction: column;
@@ -506,24 +506,24 @@
 .summary-icon {
     width: 38px;
     height: 38px;
-    border-radius: 11px;
+    border-radius: var(--radius-md);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .summary-icon.income {
-    background: rgba(181, 245, 106, 0.12);
+    background: var(--accent-soft);
     color: var(--accent);
 }
 
 .summary-icon.expense {
-    background: rgba(241, 124, 124, 0.12);
+    background: var(--danger-soft);
     color: var(--danger);
 }
 
 .transaction-summary-card > strong {
-    font-size: 27px;
+    font-size: var(--text-2xl);
     font-weight: 600;
     letter-spacing: -0.8px;
 }
@@ -538,7 +538,7 @@
 
 .summary-description {
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: var(--text-xs);
 }
 
 @media (max-width: 700px) {
@@ -567,13 +567,13 @@
 }
 
 .transaction-row:hover {
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--surface-stripe);
 }
 
 .transaction-icon {
     width: 46px;
     height: 46px;
-    border-radius: 14px;
+    border-radius: var(--radius-xl);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -581,12 +581,12 @@
 }
 
 .transaction-icon.income {
-    background: rgba(181, 245, 106, 0.12);
+    background: var(--accent-soft);
     color: var(--accent);
 }
 
 .transaction-icon.expense {
-    background: rgba(241, 124, 124, 0.12);
+    background: var(--danger-soft);
     color: var(--danger);
 }
 
@@ -600,7 +600,7 @@
 
 .transaction-info > strong {
     color: var(--text-primary);
-    font-size: 15px;
+    font-size: var(--text-md);
     font-weight: 600;
 }
 
@@ -609,7 +609,7 @@
     align-items: center;
     gap: 10px;
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: var(--text-xs);
 }
 
 .transaction-date::before {
@@ -626,7 +626,7 @@
 }
 
 .transaction-amount {
-    font-size: 15px;
+    font-size: var(--text-md);
     font-weight: 600;
     white-space: nowrap;
 }
@@ -640,20 +640,20 @@
 }
 
 .transaction-type {
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 500;
     padding: 4px 9px;
-    border-radius: 20px;
+    border-radius: var(--radius-2xl);
 }
 
 .transaction-type.income {
     color: var(--accent);
-    background: rgba(181, 245, 106, 0.10);
+    background: var(--accent-soft);
 }
 
 .transaction-type.expense {
     color: var(--danger);
-    background: rgba(241, 124, 124, 0.10);
+    background: var(--danger-soft);
 }
 
 @media (max-width: 600px) {
@@ -672,7 +672,7 @@
     }
 
     .transaction-amount {
-        font-size: 13px;
+        font-size: var(--text-sm);
     }
 }
 
@@ -696,29 +696,29 @@
 
 .modal-header h2 {
     color: var(--text-primary);
-    font-size: 22px;
+    font-size: var(--text-xl);
     margin-bottom: 6px;
 }
 
 .modal-header p {
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: var(--text-sm);
 }
 
 .modal-close {
     width: 36px;
     height: 36px;
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     background: var(--bg-card);
     color: var(--text-secondary);
-    font-size: 23px;
+    font-size: var(--text-xl);
     cursor: pointer;
 }
 
 .modal-close:hover {
     color: var(--text-primary);
-    background: #252d28;
+    background: var(--surface-hover);
 }
 
 .transaction-modal form {
@@ -729,7 +729,7 @@
 
 .transaction-modal form > label {
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: var(--text-sm);
     font-weight: 500;
     margin-top: 5px;
 }
@@ -740,11 +740,11 @@
     min-height: 46px;
     padding: 0 14px;
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     background: var(--bg-card);
     color: var(--text-primary);
     font-family: inherit;
-    font-size: 14px;
+    font-size: var(--text-base);
     outline: none;
 }
 
@@ -767,7 +767,7 @@
 .transaction-type-selector button {
     min-height: 44px;
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     background: var(--bg-card);
     color: var(--text-secondary);
     font-family: inherit;
@@ -778,7 +778,7 @@
 
 .form-error {
     color: var(--danger);
-    font-size: 13px;
+    font-size: var(--text-sm);
     margin-top: 5px;
 }
 
@@ -793,7 +793,7 @@
     min-height: 44px;
     padding: 0 18px;
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     background: transparent;
     color: var(--text-secondary);
     font-family: inherit;
@@ -833,7 +833,7 @@
 .field-error {
     display: block;
     color: var(--danger);
-    font-size: 0.8rem;
+    font-size: var(--text-xs);
     margin-top: 5px;
 }
 
@@ -847,7 +847,7 @@
     padding: 12px;
     background: var(--bg-secondary);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--radius-md);
 }
 
 .category-create-form input {
@@ -887,7 +887,7 @@
     overflow-y: auto;
     background: var(--bg-secondary);
     border: 1px solid var(--border);
-    border-radius: 20px;
+    border-radius: var(--radius-2xl);
     padding: 28px;
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
     animation: modal-appear 200ms var(--ease-out);
@@ -913,9 +913,9 @@
     background: var(--bg-secondary);
     color: var(--text-primary);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     cursor: pointer;
-    font-size: 1rem;
+    font-size: var(--text-md);
     transition: border-color 0.2s, background 0.2s;
 }
 
@@ -944,7 +944,7 @@
     padding: 6px;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
     z-index: 100;
     animation: categoryDropdownIn 0.18s ease;
@@ -961,7 +961,7 @@
     background: transparent;
     color: var(--text-primary);
     border: none;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     text-align: left;
     cursor: pointer;
 }
@@ -974,7 +974,7 @@
 }
 
 .category-dropdown-option.selected {
-    background: rgba(181, 245, 106, 0.12);
+    background: var(--accent-soft);
     color: var(--accent);
     font-weight: 600;
 }
@@ -1006,7 +1006,7 @@
 
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
 
     color: var(--text-primary);
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
@@ -1016,7 +1016,7 @@
 
 .notification span {
     flex: 1;
-    font-size: 0.9rem;
+    font-size: var(--text-base);
 }
 
 .notification-success > svg {
@@ -1028,7 +1028,7 @@
 }
 
 .notification-info > svg {
-    color: #60a5fa;
+    color: var(--info);
 }
 
 .notification button {
@@ -1072,10 +1072,10 @@
 .danger-button {
     padding: 12px 18px;
     background: var(--danger-strong);
-    color: #ffffff;
+    color: var(--on-danger);
     border: none;
-    border-radius: 10px;
-    font-size: 0.9rem;
+    border-radius: var(--radius-md);
+    font-size: var(--text-base);
     font-weight: 600;
     cursor: pointer;
     transition: background 0.2s ease, opacity 0.2s ease;
@@ -1095,7 +1095,7 @@
 }
 
 .danger-zone {
-    border-color: rgba(241, 124, 124, 0.35);
+    border-color: var(--danger-border);
 }
 
 .profile-form {
@@ -1156,7 +1156,7 @@
 .react-datepicker {
     background: var(--bg-card) !important;
     border: 1px solid var(--border) !important;
-    border-radius: 14px !important;
+    border-radius: var(--radius-xl) !important;
     font-family: var(--font-heading) !important;
     color: var(--text-primary) !important;
     overflow: hidden;
@@ -1174,23 +1174,23 @@
 
 .react-datepicker__day {
     color: var(--text-primary) !important;
-    border-radius: 8px !important;
+    border-radius: var(--radius-sm) !important;
 }
 
 .react-datepicker__day:hover {
-    background: rgba(181, 245, 106, 0.15) !important;
+    background: var(--accent-soft) !important;
     color: var(--accent) !important;
 }
 
 .react-datepicker__day--selected,
 .react-datepicker__day--keyboard-selected {
     background: var(--accent) !important;
-    color: #101510 !important;
+    color: var(--on-accent) !important;
     font-weight: 700;
 }
 
 .react-datepicker__day--outside-month {
-    color: #59625c !important;
+    color: var(--text-muted) !important;
 }
 
 .react-datepicker__navigation-icon::before {
@@ -1211,9 +1211,9 @@
     background: var(--bg-secondary);
     color: var(--text-primary);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     padding: 14px 16px;
-    font-size: 0.95rem;
+    font-size: var(--text-base);
     outline: none;
     cursor: pointer;
 }
@@ -1227,11 +1227,11 @@
 
 .skeleton {
     display: block;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     background: linear-gradient(
         90deg,
         var(--surface-hover) 0%,
-        #2e3832 50%,
+        var(--border-strong) 50%,
         var(--surface-hover) 100%
     );
     background-size: 200% 100%;
@@ -1239,12 +1239,12 @@
 }
 
 .skeleton-icon {
-    border-radius: 14px;
+    border-radius: var(--radius-xl);
     flex-shrink: 0;
 }
 
 .skeleton-chart {
-    border-radius: 10px;
+    border-radius: var(--radius-md);
 }
 
 .skeleton-donut {
@@ -1290,7 +1290,7 @@
     padding: 4px;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
 }
 
 .period-arrow {
@@ -1302,7 +1302,7 @@
     background: transparent;
     color: var(--text-secondary);
     border: none;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     transition: background-color 0.15s ease, color 0.15s ease;
 }
 
@@ -1321,7 +1321,7 @@
     text-align: center;
     color: var(--text-primary);
     font-family: var(--font-heading);
-    font-size: 15px;
+    font-size: var(--text-md);
     font-weight: 600;
 }
 
@@ -1338,8 +1338,8 @@
     background: transparent;
     color: var(--accent);
     border: 1px solid transparent;
-    border-radius: 8px;
-    font-size: 12px;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-xs);
     font-weight: 600;
     transition: border-color 0.15s ease;
 }
@@ -1355,7 +1355,7 @@
     gap: 8px;
     padding: 8px 12px;
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: var(--text-xs);
     font-weight: 600;
 }
 
@@ -1364,7 +1364,7 @@
     height: 7px;
     border-radius: 50%;
     background: var(--accent);
-    box-shadow: 0 0 0 3px rgba(181, 245, 106, 0.15);
+    box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 @media (max-width: 700px) {
@@ -1419,12 +1419,12 @@
     align-items: center;
     gap: 12px;
     padding: 10px 12px;
-    border-radius: 8px;
-    font-size: 13px;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
 }
 
 .category-legend li:nth-child(odd) {
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--surface-stripe);
 }
 
 .category-legend-dot {
@@ -1464,13 +1464,13 @@
 .chart-empty strong {
     color: var(--text-primary);
     font-family: var(--font-heading);
-    font-size: 16px;
+    font-size: var(--text-md);
 }
 
 .chart-empty span {
     max-width: 320px;
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: var(--text-sm);
 }
 
 @media (max-width: 900px) {
@@ -1505,13 +1505,13 @@
 .transaction-group-day strong {
     color: var(--text-primary);
     font-family: var(--font-heading);
-    font-size: 14px;
+    font-size: var(--text-base);
     font-weight: 600;
 }
 
 .transaction-group-day span {
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: var(--text-xs);
 }
 
 .transaction-group-day span::before {
@@ -1528,8 +1528,8 @@
 
 .transaction-group-totals span {
     padding: 3px 9px;
-    border-radius: 20px;
-    font-size: 11px;
+    border-radius: var(--radius-2xl);
+    font-size: var(--text-2xs);
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
@@ -1537,12 +1537,12 @@
 
 .transaction-group-totals .income {
     color: var(--accent);
-    background: rgba(181, 245, 106, 0.08);
+    background: var(--accent-subtle);
 }
 
 .transaction-group-totals .expense {
     color: var(--danger);
-    background: rgba(241, 124, 124, 0.08);
+    background: var(--danger-subtle);
 }
 
 .transaction-amount {
@@ -1614,7 +1614,7 @@
 }
 
 .transaction-icon.category {
-    background: rgba(181, 245, 106, 0.08);
+    background: var(--accent-subtle);
     color: var(--accent);
 }
 
@@ -1623,10 +1623,10 @@
     margin-left: 8px;
     padding: 2px 8px;
     vertical-align: middle;
-    background: rgba(181, 245, 106, 0.12);
+    background: var(--accent-soft);
     color: var(--accent);
-    border-radius: 20px;
-    font-size: 10px;
+    border-radius: var(--radius-2xl);
+    font-size: var(--text-2xs);
     font-weight: 700;
     letter-spacing: 0.4px;
 }
@@ -1649,7 +1649,7 @@
     background: transparent;
     color: var(--text-secondary);
     border: 1px solid transparent;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     transition: background-color 0.15s ease, color 0.15s ease;
 }
 
@@ -1659,7 +1659,7 @@
 }
 
 .row-action.danger:hover {
-    background: rgba(241, 124, 124, 0.1);
+    background: var(--danger-soft);
     color: var(--danger);
 }
 
@@ -1689,16 +1689,16 @@
 .notification .notification-action {
     padding: 6px 10px;
     color: var(--accent);
-    border: 1px solid rgba(181, 245, 106, 0.35);
-    border-radius: 8px;
-    font-size: 0.8rem;
+    border: 1px solid var(--accent-border);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-xs);
     font-weight: 700;
     transition: background-color 150ms ease, transform 120ms var(--ease-out);
 }
 
 .notification .notification-action:hover {
     color: var(--accent);
-    background: rgba(181, 245, 106, 0.1);
+    background: var(--accent-soft);
 }
 
 .notification .notification-action:active {
@@ -1737,13 +1737,13 @@
     padding: 14px 18px;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     animation: insight-in 300ms var(--ease-out);
 }
 
 .insight-banner p {
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: var(--text-base);
     line-height: 1.5;
 }
 
@@ -1759,27 +1759,27 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 10px;
-    background: rgba(139, 184, 255, 0.12);
+    border-radius: var(--radius-md);
+    background: var(--info-soft);
     color: var(--info);
 }
 
 .insight-icon-skeleton {
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     flex-shrink: 0;
 }
 
 .insight-banner.positive .insight-icon {
-    background: rgba(181, 245, 106, 0.12);
+    background: var(--accent-soft);
     color: var(--accent);
 }
 
 .insight-banner.warning {
-    border-color: rgba(241, 124, 124, 0.35);
+    border-color: var(--danger-border);
 }
 
 .insight-banner.warning .insight-icon {
-    background: rgba(241, 124, 124, 0.12);
+    background: var(--danger-soft);
     color: var(--danger);
 }
 
@@ -1799,12 +1799,12 @@
 
 .transaction-form {
     --type-color: var(--accent);
-    --type-tint: rgba(181, 245, 106, 0.1);
+    --type-tint: var(--accent-soft);
 }
 
 .transaction-form[data-type="EXPENSE"] {
     --type-color: var(--danger);
-    --type-tint: rgba(241, 124, 124, 0.1);
+    --type-tint: var(--danger-soft);
 }
 
 .transaction-modal .transaction-form input:focus,
@@ -1828,7 +1828,7 @@
     height: 100%;
     background: var(--type-tint);
     border: 1px solid var(--type-color);
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     transition:
         transform 220ms var(--ease-out),
         background-color 220ms ease,
@@ -1858,7 +1858,7 @@
     min-height: 58px;
     color: var(--type-color);
     font-family: var(--font-heading);
-    font-size: 26px;
+    font-size: var(--text-2xl);
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     transition: color 220ms ease, border-color 150ms ease;
@@ -1877,7 +1877,7 @@
 
 @keyframes row-highlight {
     from {
-        background: rgba(181, 245, 106, 0.12);
+        background: var(--accent-soft);
     }
     to {
         background: transparent;
@@ -1891,9 +1891,9 @@
     margin-left: 4px;
     padding: 1px 6px;
     border: 1px solid rgba(16, 21, 12, 0.3);
-    border-radius: 5px;
+    border-radius: var(--radius-xs);
     font-family: inherit;
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 700;
     opacity: 0.6;
 }
@@ -1974,7 +1974,7 @@
     width: 460px;
     height: 460px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(181, 245, 106, 0.14), transparent 65%);
+    background: radial-gradient(circle, var(--accent-soft), transparent 65%);
     pointer-events: none;
 }
 
@@ -1992,7 +1992,7 @@
     margin-bottom: 36px;
     color: var(--text-primary);
     font-family: var(--font-heading);
-    font-size: 40px;
+    font-size: var(--text-4xl);
     font-weight: 600;
     line-height: 1.1;
     letter-spacing: -0.5px;
@@ -2021,8 +2021,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 10px;
-    background: rgba(181, 245, 106, 0.1);
+    border-radius: var(--radius-md);
+    background: var(--accent-soft);
     color: var(--accent);
 }
 
@@ -2030,19 +2030,19 @@
     display: block;
     margin-bottom: 3px;
     color: var(--text-primary);
-    font-size: 14px;
+    font-size: var(--text-base);
 }
 
 .auth-highlights p {
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: var(--text-sm);
     line-height: 1.5;
 }
 
 .auth-brand-footer {
     position: relative;
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: var(--text-xs);
 }
 
 .auth-main {
@@ -2066,14 +2066,14 @@
 .auth-card h1 {
     color: var(--text-primary);
     font-family: var(--font-heading);
-    font-size: 32px;
+    font-size: var(--text-3xl);
     font-weight: 600;
 }
 
 .auth-subtitle {
     margin: 8px 0 30px;
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: var(--text-base);
     line-height: 1.5;
 }
 
@@ -2091,7 +2091,7 @@
 
 .auth-field label {
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: var(--text-sm);
     font-weight: 500;
 }
 
@@ -2102,8 +2102,8 @@
     background: var(--bg-card);
     color: var(--text-primary);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    font-size: 15px;
+    border-radius: var(--radius-md);
+    font-size: var(--text-md);
     outline: none;
     transition: border-color 150ms ease;
 }
@@ -2138,7 +2138,7 @@
     background: transparent;
     color: var(--text-secondary);
     border: none;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     transition: color 150ms ease, background-color 150ms ease;
 }
 
@@ -2156,11 +2156,11 @@
     align-items: center;
     gap: 6px;
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: var(--text-xs);
 }
 
 .field-hint.warning {
-    color: #e5b567;
+    color: var(--warning);
 }
 
 .auth-alert {
@@ -2168,11 +2168,11 @@
     align-items: center;
     gap: 10px;
     padding: 12px 14px;
-    background: rgba(241, 124, 124, 0.08);
+    background: var(--danger-subtle);
     color: var(--danger);
-    border: 1px solid rgba(241, 124, 124, 0.3);
-    border-radius: 10px;
-    font-size: 13px;
+    border: 1px solid var(--danger-border);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
     animation: insight-in 200ms var(--ease-out);
 }
 
@@ -2193,7 +2193,7 @@
     align-items: center;
     gap: 8px;
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: var(--text-xs);
     transition: color 150ms ease;
 }
 
@@ -2205,7 +2205,7 @@
     width: 100%;
     min-height: 48px;
     margin-top: 6px;
-    font-size: 14px;
+    font-size: var(--text-base);
 }
 
 .auth-submit:disabled {
@@ -2216,7 +2216,7 @@
 .auth-footer {
     margin-top: 28px;
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: var(--text-sm);
     text-align: center;
 }
 
@@ -2281,7 +2281,7 @@
     padding: 6px;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
     transform-origin: top right;
     animation: user-menu-in 160ms var(--ease-out);
@@ -2298,14 +2298,14 @@
 
 .user-menu-header span {
     color: var(--text-secondary);
-    font-size: 11px;
+    font-size: var(--text-2xs);
 }
 
 .user-menu-header strong {
     max-width: 200px;
     overflow: hidden;
     color: var(--text-primary);
-    font-size: 14px;
+    font-size: var(--text-base);
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -2319,8 +2319,8 @@
     background: transparent;
     color: var(--text-primary);
     border: none;
-    border-radius: 8px;
-    font-size: 14px;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-base);
     text-align: left;
     transition: background-color 150ms ease;
 }
@@ -2331,7 +2331,7 @@
 
 .user-menu-item:hover,
 .user-menu-item:focus-visible {
-    background: rgba(241, 124, 124, 0.1);
+    background: var(--danger-soft);
     outline: none;
 }
 
@@ -2391,7 +2391,7 @@
     width: 120px;
     height: 3px;
     overflow: hidden;
-    border-radius: 3px;
+    border-radius: var(--radius-xs);
     background: var(--border);
 }
 
@@ -2400,7 +2400,7 @@
     position: absolute;
     inset: 0;
     width: 40%;
-    border-radius: 3px;
+    border-radius: var(--radius-xs);
     background: var(--accent);
     animation: auth-status-slide 1s ease-in-out infinite;
 }
@@ -2417,13 +2417,13 @@
 .auth-status-error h1 {
     color: var(--text-primary);
     font-family: var(--font-heading);
-    font-size: 20px;
+    font-size: var(--text-xl);
 }
 
 .auth-status-error p {
     margin-bottom: 8px;
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: var(--text-base);
 }
 
 /* Texto só para leitores de tela. */
@@ -2469,10 +2469,10 @@
     gap: 6px;
     flex-shrink: 0;
     padding: 5px 11px;
-    background: rgba(181, 245, 106, 0.12);
+    background: var(--accent-soft);
     color: var(--accent);
-    border-radius: 20px;
-    font-size: 12px;
+    border-radius: var(--radius-2xl);
+    font-size: var(--text-xs);
     font-weight: 600;
     cursor: help;
 }
@@ -2487,7 +2487,7 @@
     gap: 12px;
     min-height: 18px;
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: var(--text-xs);
 }
 
 .field-help .field-error {
@@ -2508,7 +2508,7 @@
     padding: 4px;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--radius-md);
 }
 
 .segmented-control button {
@@ -2516,8 +2516,8 @@
     background: transparent;
     color: var(--text-secondary);
     border: none;
-    border-radius: 7px;
-    font-size: 13px;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
     font-weight: 600;
     transition: background-color 0.15s ease, color 0.15s ease;
 }
