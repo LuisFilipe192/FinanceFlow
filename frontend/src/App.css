@@ -1840,6 +1840,28 @@
     border-radius: var(--radius-xs);
 }
 
+.category-share.warning span {
+    background: var(--warning);
+}
+
+.category-share.over span {
+    background: var(--danger);
+}
+
+.budget-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.budget-status.warning {
+    color: var(--warning);
+}
+
+.budget-status.over {
+    color: var(--danger);
+}
+
 .category-row .transaction-info > strong {
     white-space: normal;
 }
@@ -1850,7 +1872,17 @@
         gap: 10px;
     }
 
-    .category-row .transaction-meta span + span {
+    .category-row .category-note {
+        display: none;
+    }
+
+    .category-row .transaction-meta {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+    }
+
+    .category-row .transaction-meta span + span::before {
         display: none;
     }
 

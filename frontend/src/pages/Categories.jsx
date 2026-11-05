@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Lock, Pencil, Plus, Tags, Trash2 } from "lucide-react";
+import { AlertTriangle, Lock, Pencil, Plus, Tags, Trash2 } from "lucide-react";
 
 import ConfirmDialog from "../components/ConfirmDialog";
 import EmptyState from "../components/EmptyState";
@@ -13,6 +13,7 @@ import {
     deleteCategory
 } from "../services/transactions";
 import { DEFAULT_CATEGORY_NAME } from "../utils/categories";
+import { getBudgetStatus } from "../utils/budget";
 import { getCategoryColorMap } from "../utils/categoryColors";
 import { formatCurrency, pluralize } from "../utils/format";
 import { MONTH_NAMES } from "../utils/insights";
@@ -97,12 +98,15 @@ function Categories() {
 
         closeForm();
 
-        showToast({
-            type: "success",
-            message: previousCategory
+        let message = `Categoria "${savedCategory.name}" criada.`;
+
+        if (previousCategory) {
+            message = previousCategory.name !== savedCategory.name
                 ? `"${previousCategory.name}" agora se chama "${savedCategory.name}".`
-                : `Categoria "${savedCategory.name}" criada.`,
-        });
+                : `Categoria "${savedCategory.name}" atualizada.`;
+        }
+
+        showToast({ type: "success", message });
     }
 
     async function handleDeleteCategory() {
@@ -187,6 +191,7 @@ function Categories() {
                     const isDefault = category.name === DEFAULT_CATEGORY_NAME;
                     const spent = monthSpending.get(category.id) ?? 0;
                     const share = monthTotal > 0 ? spent / monthTotal : 0;
+                    const budget = getBudgetStatus(spent, category.monthly_budget);
 
                     return (
                         <div
@@ -209,22 +214,38 @@ function Categories() {
                                         <span className="badge">Padrão</span>
                                     )}
                                 </strong>
-                                <div className="transaction-meta">
-                                    <span>
-                                        {spent > 0
-                                            ? `${formatCurrency(spent)} em ${monthName}`
-                                            : `Sem gastos em ${monthName}`}
-                                    </span>
-                                    {isDefault && <span>Usada quando nenhuma categoria é escolhida</span>}
-                                </div>
+                                {budget ? (
+                                    <>
+                                        <div className="transaction-meta">
+                                            <span>
+                                                {formatCurrency(spent)} de {formatCurrency(category.monthly_budget)} em {monthName}
+                                            </span>
+                                            <span className={`budget-status ${budget.level}`}>
+                                                {budget.level !== "ok" && <AlertTriangle size={12} />}
+                                                {budget.level === "over"
+                                                    ? `Passou ${formatCurrency(-budget.remaining)}`
+                                                    : budget.remaining === 0
+                                                        ? "Limite atingido"
+                                                        : `Restam ${formatCurrency(budget.remaining)}`}
+                                            </span>
+                                        </div>
 
-                                {spent > 0 && (
-                                    <div
-                                        className="category-share"
-                                        role="img"
-                                        aria-label={`${Math.round(share * 100)}% dos gastos de ${monthName}`}
-                                    >
-                                        <span style={{ width: `${Math.max(share * 100, 2)}%` }} />
+                                        <div
+                                            className={`category-share ${budget.level}`}
+                                            role="img"
+                                            aria-label={`${Math.round(budget.ratio * 100)}% do orçamento de ${monthName}`}
+                                        >
+                                            <span style={{ width: `${Math.min(Math.max(budget.ratio * 100, 2), 100)}%` }} />
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="transaction-meta">
+                                        <span>
+                                            {spent > 0
+                                                ? `${formatCurrency(spent)} em ${monthName} · ${Math.round(share * 100)}% do total`
+                                                : `Sem gastos em ${monthName}`}
+                                        </span>
+                                        {isDefault && <span className="category-note">Usada quando nenhuma categoria é escolhida</span>}
                                     </div>
                                 )}
                             </div>
@@ -242,8 +263,8 @@ function Categories() {
                                     <button
                                         type="button"
                                         className="row-action"
-                                        aria-label={`Renomear categoria ${category.name}`}
-                                        title="Renomear"
+                                        aria-label={`Editar categoria ${category.name}`}
+                                        title="Editar"
                                         onClick={() => openEditForm(category)}
                                     >
                                         <Pencil size={16} />

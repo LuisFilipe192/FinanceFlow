@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 
+import CurrencyInput from "../CurrencyInput";
 import Modal from "../Modal";
 import { createCategory, updateCategory } from "../../services/transactions";
+import { centsToNumber, numberToCents } from "../../utils/format";
+
+function centsToBudget(digits) {
+    return digits ? centsToNumber(digits).toFixed(2) : null;
+}
 
 const MAX_LENGTH = 100;
 
@@ -36,11 +42,14 @@ function getNameError(name, categories, currentId) {
     return "";
 }
 
-// category = null cria uma categoria nova; um objeto renomeia a existente.
+// category = null cria uma categoria nova; um objeto edita a existente.
 function CategoryFormModal({ category, categories, onSaved, onClose }) {
     const isEditing = Boolean(category);
+    const initialBudget = numberToCents(category?.monthly_budget);
 
     const [value, setValue] = useState(category ? category.name : "");
+    const [budget, setBudget] = useState(initialBudget);
+    const [budgetError, setBudgetError] = useState("");
     // Só mostra erro depois que a pessoa começou a digitar ou tentou salvar:
     // ninguém gosta de abrir um formulário e já ver uma mensagem vermelha.
     const [touched, setTouched] = useState(false);
@@ -56,7 +65,9 @@ function CategoryFormModal({ category, categories, onSaved, onClose }) {
 
     const name = normalizeName(value);
     const validationError = getNameError(name, categories, category?.id);
-    const unchanged = isEditing && name === category.name;
+    const nameChanged = !isEditing || name !== category.name;
+    const budgetChanged = budget !== initialBudget;
+    const unchanged = isEditing && !nameChanged && !budgetChanged;
     const visibleError = serverError || (touched ? validationError : "");
 
     async function handleSubmit(event) {
@@ -68,21 +79,36 @@ function CategoryFormModal({ category, categories, onSaved, onClose }) {
         try {
             setSaving(true);
             setServerError("");
+            setBudgetError("");
 
-            const savedCategory = isEditing
-                ? await updateCategory(category.id, name)
-                : await createCategory(name);
+            let savedCategory;
+
+            if (isEditing) {
+                const changes = {};
+                if (nameChanged) changes.name = name;
+                if (budgetChanged) changes.monthly_budget = centsToBudget(budget);
+
+                savedCategory = await updateCategory(category.id, changes);
+            } else {
+                savedCategory = await createCategory(name, centsToBudget(budget));
+            }
 
             onSaved(savedCategory, category);
         } catch (error) {
             console.error(error);
             // O backend responde { name: "mensagem" } quando a validação falha.
-            setServerError(
-                error.data?.name ||
-                (isEditing
-                    ? "Não foi possível renomear a categoria. Tente novamente."
-                    : "Não foi possível cadastrar a categoria. Tente novamente.")
-            );
+            if (error.data?.monthly_budget) {
+                setBudgetError(error.data.monthly_budget);
+            }
+
+            if (error.data?.name || !error.data?.monthly_budget) {
+                setServerError(
+                    error.data?.name ||
+                    (isEditing
+                        ? "Não foi possível salvar a categoria. Tente novamente."
+                        : "Não foi possível cadastrar a categoria. Tente novamente.")
+                );
+            }
         } finally {
             setSaving(false);
         }
@@ -90,10 +116,10 @@ function CategoryFormModal({ category, categories, onSaved, onClose }) {
 
     return (
         <Modal
-            title={isEditing ? "Renomear categoria" : "Nova categoria"}
+            title={isEditing ? "Editar categoria" : "Nova categoria"}
             description={
                 isEditing
-                    ? "O novo nome aparece em todas as transações desta categoria."
+                    ? "O nome novo aparece em todas as transações desta categoria."
                     : "Use categorias para entender para onde vai o seu dinheiro."
             }
             onClose={onClose}
@@ -132,6 +158,29 @@ function CategoryFormModal({ category, categories, onSaved, onClose }) {
                     </span>
                 </div>
 
+                <label htmlFor="category-budget">Orçamento mensal (opcional)</label>
+
+                <CurrencyInput
+                    id="category-budget"
+                    value={budget}
+                    className={budgetError ? "input-error" : ""}
+                    aria-invalid={Boolean(budgetError)}
+                    aria-describedby="category-budget-help"
+                    disabled={saving}
+                    onChange={(digits) => {
+                        setBudget(digits);
+                        setBudgetError("");
+                    }}
+                />
+
+                <div className="field-help" id="category-budget-help">
+                    {budgetError ? (
+                        <span className="field-error" role="alert">{budgetError}</span>
+                    ) : (
+                        <span>Limite de gastos por mês. Deixe vazio para não acompanhar.</span>
+                    )}
+                </div>
+
                 <div className="modal-actions">
                     <button
                         type="button"
@@ -150,7 +199,7 @@ function CategoryFormModal({ category, categories, onSaved, onClose }) {
                         {saving
                             ? "Salvando..."
                             : isEditing
-                                ? "Salvar nome"
+                                ? "Salvar alterações"
                                 : "Criar categoria"}
                     </button>
                 </div>

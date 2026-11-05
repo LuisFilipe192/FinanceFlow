@@ -81,6 +81,33 @@ describe("buildInsight", () => {
         expect(sentences).toEqual(["Nenhuma movimentação em novembro de 2026. Que tal registrar a primeira?"]);
     });
 
+    it("avisa quando uma categoria passa do orçamento, no lugar da maior despesa", () => {
+        const { sentences, tone } = buildInsight({
+            ...base,
+            previousComparison: null,
+            expensesByCategory: [
+                { category_id: 1, category: "Mercado", total: "412.00" },
+                { category_id: 2, category: "Lazer", total: "38.00" },
+            ],
+            budgets: new Map([[1, "400.00"], [2, "40.00"]]),
+        });
+
+        expect(tone).toBe("warning");
+        expect(sentences.at(-1).replace(/\s/g, " ")).toBe("Mercado passou do orçamento em R$ 12,00.");
+    });
+
+    it("avisa quando uma categoria chega a 80% do orçamento", () => {
+        const { sentences, tone } = buildInsight({
+            ...base,
+            previousComparison: null,
+            expensesByCategory: [{ category_id: 1, category: "Mercado", total: "368.00" }],
+            budgets: new Map([[1, "400.00"]]),
+        });
+
+        expect(tone).toBe("neutral");
+        expect(sentences.at(-1)).toBe("Mercado já usou 92% do orçamento.");
+    });
+
     it("cita a categoria com maior gasto", () => {
         const { sentences } = buildInsight({
             ...base,

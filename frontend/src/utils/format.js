@@ -9,6 +9,14 @@ export function formatCurrency(value) {
     });
 }
 
+export function centsToNumber(digits) {
+    return digits ? Number(digits) / 100 : 0;
+}
+
+export function numberToCents(value) {
+    return value ? String(Math.round(Number(value) * 100)) : "";
+}
+
 const compactCurrencyFormatter = new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",

@@ -1041,3 +1041,68 @@ class PasswordChangeTests(TestCase):
 
         self.client.logout()
         self.assertEqual(self.change().status_code, 401)
+
+
+class CategoryBudgetTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="ana", password="senha-forte-123")
+        self.client.force_login(self.user)
+        self.category = Category.objects.create(name="Mercado", user=self.user)
+
+    def patch(self, payload, category=None):
+        return self.client.patch(
+            f"/api/categories/{(category or self.category).id}/",
+            payload,
+            content_type="application/json",
+        )
+
+    def test_creates_category_with_budget(self):
+        response = self.client.post(
+            "/api/categories/",
+            {"name": "Lazer", "monthly_budget": "300.5"},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["monthly_budget"], "300.50")
+
+    def test_sets_changes_and_clears_budget(self):
+        self.assertEqual(self.patch({"monthly_budget": 800}).json()["monthly_budget"], "800.00")
+        self.assertEqual(self.patch({"monthly_budget": "950,00".replace(",", ".")}).json()["monthly_budget"], "950.00")
+
+        response = self.patch({"monthly_budget": None})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(response.json()["monthly_budget"])
+        self.category.refresh_from_db()
+        self.assertIsNone(self.category.monthly_budget)
+
+    def test_renaming_keeps_budget(self):
+        self.patch({"monthly_budget": "500"})
+
+        response = self.patch({"name": "Supermercado"})
+
+        self.assertEqual(response.json(), {"id": self.category.id, "name": "Supermercado", "monthly_budget": "500.00"})
+
+    def test_invalid_budget_is_rejected(self):
+        for value in (0, -10, "abc", True, "100000000", "NaN"):
+            with self.subTest(value=value):
+                response = self.patch({"monthly_budget": value})
+
+                self.assertEqual(response.status_code, 400)
+                self.assertIn("monthly_budget", response.json())
+
+    def test_list_includes_budget(self):
+        self.patch({"monthly_budget": "250"})
+
+        categories = {item["name"]: item for item in self.client.get("/api/categories/").json()}
+
+        self.assertEqual(categories["Mercado"]["monthly_budget"], "250.00")
+
+    def test_default_category_does_not_accept_budget(self):
+        default = Category.objects.create(name="Transferências", user=self.user)
+
+        self.assertEqual(self.patch({"monthly_budget": "100"}, category=default).status_code, 400)
+
+    def test_empty_patch_is_rejected(self):
+        self.assertEqual(self.patch({}).status_code, 400)

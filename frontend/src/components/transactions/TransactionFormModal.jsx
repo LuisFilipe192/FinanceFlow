@@ -5,24 +5,16 @@ import DatePicker from "react-datepicker";
 import { ptBR } from "date-fns/locale";
 import "react-datepicker/dist/react-datepicker.css";
 
+import CurrencyInput from "../CurrencyInput";
 import Modal from "../Modal";
 import Select from "../Select";
-import { formatCurrency, formatDateToISO, parseISODate } from "../../utils/format";
+import { centsToNumber, formatCurrency, formatDateToISO, numberToCents, parseISODate } from "../../utils/format";
 import {
     createTransaction,
     updateTransaction,
     createCategory,
 } from "../../services/transactions";
 import { DEFAULT_CATEGORY_NAME } from "../../utils/categories";
-
-// O valor é guardado como dígitos em centavos ("125000" = R$ 1.250,00), como
-// nos apps de banco: cada número digitado entra pela direita. 10 dígitos é o
-// limite do campo no banco (max_digits=10, decimal_places=2).
-const MAX_AMOUNT_DIGITS = 10;
-
-function centsToNumber(digits) {
-    return digits ? Number(digits) / 100 : 0;
-}
 
 function findTransferCategory(categories) {
     return categories.find((category) => category.name === DEFAULT_CATEGORY_NAME);
@@ -34,7 +26,7 @@ function getInitialForm(transaction, categories) {
     if (transaction) {
         return {
             description: transaction.description,
-            amount: String(Math.round(Number(transaction.amount) * 100)),
+            amount: numberToCents(transaction.amount),
             type: transaction.type,
             date: transaction.date,
             category: transaction.category ? String(transaction.category) : "",
@@ -267,22 +259,13 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
                 )}
 
                 <label htmlFor="transaction-amount">Valor</label>
-                <input
+                <CurrencyInput
                     id="transaction-amount"
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="R$ 0,00"
-                    value={formData.amount ? formatCurrency(centsToNumber(formData.amount)) : ""}
+                    value={formData.amount}
                     className={`amount-input ${fieldErrors.amount ? "input-error" : ""}`}
                     aria-invalid={Boolean(fieldErrors.amount)}
                     aria-describedby={fieldErrors.amount ? "amount-error" : undefined}
-                    onChange={(event) => {
-                        // Fica só com os dígitos: letras e símbolos nem entram.
-                        const digits = event.target.value
-                            .replace(/\D/g, "")
-                            .replace(/^0+/, "")
-                            .slice(0, MAX_AMOUNT_DIGITS);
-
+                    onChange={(digits) => {
                         setFormData((previous) => ({ ...previous, amount: digits }));
                         setFieldErrors((previous) => ({ ...previous, amount: "" }));
                     }}

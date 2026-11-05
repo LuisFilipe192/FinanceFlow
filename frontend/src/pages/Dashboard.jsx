@@ -34,12 +34,16 @@ function Dashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [categoryColors, setCategoryColors] = useState(() => new Map());
+    const [budgets, setBudgets] = useState(() => new Map());
 
     useEffect(() => {
         const controller = new AbortController();
 
         getCategories({ signal: controller.signal })
-            .then((categories) => setCategoryColors(getCategoryColorMap(categories)))
+            .then((categories) => {
+                setCategoryColors(getCategoryColorMap(categories));
+                setBudgets(new Map(categories.map((category) => [category.id, category.monthly_budget])));
+            })
             .catch((requestError) => {
                 if (requestError.name !== "AbortError") console.error(requestError);
             });
@@ -126,6 +130,7 @@ function Dashboard() {
                     loading={loading}
                     summary={error ? null : summary}
                     previousComparison={previousComparison}
+                    budgets={budgets}
                     expensesByCategory={expensesByCategory}
                     month={loadedPeriod.month}
                     year={loadedPeriod.year}

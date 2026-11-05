@@ -1,4 +1,5 @@
 import re
+from decimal import Decimal, InvalidOperation
 
 from django.utils import timezone
 from django.db import transaction
@@ -146,6 +147,42 @@ def _clean_category_name(raw_name, user, exclude_id=None):
     return name, None
 
 
+MAX_BUDGET = Decimal("99999999.99")
+
+
+def _clean_budget(raw_budget):
+    if raw_budget is None or raw_budget == "":
+        return None, None
+
+    if isinstance(raw_budget, bool):
+        return None, "Informe um valor válido."
+
+    try:
+        budget = Decimal(str(raw_budget)).quantize(Decimal("0.01"))
+    except (InvalidOperation, ValueError):
+        return None, "Informe um valor válido."
+
+    if not budget.is_finite() or budget <= 0:
+        return None, "O orçamento precisa ser maior que zero."
+
+    if budget > MAX_BUDGET:
+        return None, "Use um valor menor."
+
+    return budget, None
+
+
+def _category_data(category):
+    return {
+        "id": category.id,
+        "name": category.name,
+        "monthly_budget": (
+            str(category.monthly_budget)
+            if category.monthly_budget is not None
+            else None
+        ),
+    }
+
+
 @ensure_csrf_cookie
 @api_view(["GET", "POST", "DELETE"])
 @permission_classes([IsAuthenticated])
@@ -160,10 +197,7 @@ def categories_api(request):
             name=DEFAULT_CATEGORY_NAME
         )
 
-        data = [
-            {"id": category.id, "name": category.name}
-            for category in categories
-        ]
+        data = [_category_data(category) for category in categories]
 
         return Response(data)
 
@@ -203,20 +237,25 @@ def categories_api(request):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     name, error = _clean_category_name(request.data.get("name"), request.user)
+    budget, budget_error = _clean_budget(request.data.get("monthly_budget"))
 
+    errors = {}
     if error:
-        return Response(
-            {"name": error},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        errors["name"] = error
+    if budget_error:
+        errors["monthly_budget"] = budget_error
+
+    if errors:
+        return Response(errors, status=status.HTTP_400_BAD_REQUEST)
 
     category = Category.objects.create(
         name=name,
+        monthly_budget=budget,
         user=request.user
     )
 
     return Response(
-        {"id": category.id, "name": category.name},
+        _category_data(category),
         status=status.HTTP_201_CREATED
     )
 
@@ -240,22 +279,43 @@ def category_detail_api(request, pk):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    name, error = _clean_category_name(
-        request.data.get("name"),
-        request.user,
-        exclude_id=category.id
-    )
-
-    if error:
+    if "name" not in request.data and "monthly_budget" not in request.data:
         return Response(
-            {"name": error},
+            {"name": "Envie o nome ou o orçamento para alterar."},
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    category.name = name
-    category.save(update_fields=["name"])
+    errors = {}
+    update_fields = []
 
-    return Response({"id": category.id, "name": category.name})
+    if "name" in request.data:
+        name, error = _clean_category_name(
+            request.data.get("name"),
+            request.user,
+            exclude_id=category.id
+        )
+
+        if error:
+            errors["name"] = error
+        else:
+            category.name = name
+            update_fields.append("name")
+
+    if "monthly_budget" in request.data:
+        budget, budget_error = _clean_budget(request.data.get("monthly_budget"))
+
+        if budget_error:
+            errors["monthly_budget"] = budget_error
+        else:
+            category.monthly_budget = budget
+            update_fields.append("monthly_budget")
+
+    if errors:
+        return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+
+    category.save(update_fields=update_fields)
+
+    return Response(_category_data(category))
 
 @api_view(["PATCH", "DELETE"])
 @permission_classes([IsAuthenticated])

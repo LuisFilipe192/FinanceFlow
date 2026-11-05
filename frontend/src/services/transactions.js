@@ -38,19 +38,19 @@ export function getCategories({ signal } = {}) {
     });
 }
 
-export function createCategory(name) {
+export function createCategory(name, monthlyBudget = null) {
     return apiRequest("/categories/", {
         method: "POST",
-        body: { name },
+        body: { name, monthly_budget: monthlyBudget },
         fallbackError: "Não foi possível cadastrar a categoria.",
     });
 }
 
-export function updateCategory(id, name) {
+export function updateCategory(id, changes) {
     return apiRequest(`/categories/${id}/`, {
         method: "PATCH",
-        body: { name },
-        fallbackError: "Não foi possível renomear a categoria.",
+        body: changes,
+        fallbackError: "Não foi possível salvar a categoria.",
     });
 }
 

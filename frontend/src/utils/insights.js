@@ -1,3 +1,4 @@
+import { getBudgetStatus } from "./budget";
 import { formatCurrency } from "./format";
 
 export const MONTH_NAMES = [
@@ -22,7 +23,19 @@ export function sumExpensesUntil(dailyMovement, untilDay = null) {
 
 // Até duas frases curtas sobre o mês, calculadas a partir dos dados.
 // tone define a cor do ícone: "positive", "warning" ou "neutral".
-export function buildInsight({ summary, previousComparison, expensesByCategory, month, year }) {
+export function findBudgetAlert(expensesByCategory, budgets) {
+    const alerts = expensesByCategory
+        .map((item) => ({
+            name: item.category || "Sem categoria",
+            status: getBudgetStatus(Number(item.total), budgets.get(item.category_id)),
+        }))
+        .filter((item) => item.status && item.status.level !== "ok")
+        .sort((a, b) => b.status.ratio - a.status.ratio);
+
+    return alerts[0] ?? null;
+}
+
+export function buildInsight({ summary, previousComparison, expensesByCategory, budgets = new Map(), month, year }) {
     const monthName = MONTH_NAMES[month - 1];
     const previousMonthName = MONTH_NAMES[(month + 10) % 12];
 
@@ -66,6 +79,22 @@ export function buildInsight({ summary, previousComparison, expensesByCategory, 
     } else {
         tone = "positive";
         sentences.push(`Seu saldo em ${monthName} está positivo em ${formatCurrency(income - expenses)}.`);
+    }
+
+    const budgetAlert = findBudgetAlert(expensesByCategory, budgets);
+
+    if (budgetAlert) {
+        const { name, status } = budgetAlert;
+
+        if (status.level === "over") {
+            tone = "warning";
+            sentences.push(`${name} passou do orçamento em ${formatCurrency(-status.remaining)}.`);
+        } else {
+            if (tone === "positive") tone = "neutral";
+            sentences.push(`${name} já usou ${Math.floor(status.ratio * 100)}% do orçamento.`);
+        }
+
+        return { tone, sentences };
     }
 
     const topCategory = [...expensesByCategory].sort(
