@@ -10,7 +10,8 @@ from django.db import IntegrityError
 from django.db.models import RestrictedError
 from rest_framework.throttling import UserRateThrottle
 
-from transactions.models import Transaction, Category
+from transactions.models import Transaction, Category, FixedBill
+from transactions.services.fixed_bills import get_due_date, get_fixed_bills_for_period
 from transactions.services.dashboard import (
     get_financial_summary,
     get_expenses_by_category,
@@ -1148,3 +1149,172 @@ class TransactionPeriodFilterTests(TestCase):
         for query in ("?month=13&year=2026", "?month=abc&year=2026", "?month=11", "?year=1999"):
             with self.subTest(query=query):
                 self.assertEqual(self.client.get(f"/api/transactions/{query}").status_code, 400)
+
+
+
+class FixedBillTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="ana", password="senha-forte-123")
+        self.other = User.objects.create_user(username="bruno", password="senha-forte-123")
+        self.client.force_login(self.user)
+        self.category = Category.objects.create(name="Moradia", user=self.user)
+        self.rent = FixedBill.objects.create(
+            user=self.user, description="Aluguel", amount=Decimal("1800.00"), due_day=10, category=self.category
+        )
+        FixedBill.objects.filter(id=self.rent.id).update(created_at="2026-01-01T12:00:00Z")
+        self.rent.refresh_from_db()
+
+    def statuses(self, month, year, today):
+        entries, summary = get_fixed_bills_for_period(self.user, month, year, today)
+        return {entry["bill"].description: entry["status"] for entry in entries}, summary
+
+    def pay(self, bill=None, **payload):
+        return self.client.post(
+            f"/api/fixed-bills/{(bill or self.rent).id}/pay/", payload, content_type="application/json"
+        )
+
+    def test_status_follows_the_due_day(self):
+        self.assertEqual(self.statuses(11, 2026, date(2026, 11, 5))[0], {"Aluguel": "pending"})
+        self.assertEqual(self.statuses(11, 2026, date(2026, 11, 10))[0], {"Aluguel": "due_today"})
+        self.assertEqual(self.statuses(11, 2026, date(2026, 11, 11))[0], {"Aluguel": "overdue"})
+        self.assertEqual(self.statuses(10, 2026, date(2026, 11, 5))[0], {"Aluguel": "overdue"})
+        self.assertEqual(self.statuses(12, 2026, date(2026, 11, 5))[0], {"Aluguel": "pending"})
+
+    def test_bill_without_due_day_is_pending_until_the_month_ends(self):
+        FixedBill.objects.filter(id=self.rent.id).update(due_day=None)
+
+        self.assertEqual(self.statuses(11, 2026, date(2026, 11, 30))[0], {"Aluguel": "pending"})
+        self.assertEqual(self.statuses(10, 2026, date(2026, 11, 1))[0], {"Aluguel": "overdue"})
+
+    def test_due_day_31_falls_on_the_last_day_of_short_months(self):
+        self.rent.due_day = 31
+
+        self.assertEqual(get_due_date(self.rent, 2, 2026), date(2026, 2, 28))
+        self.assertEqual(get_due_date(self.rent, 2, 2028), date(2028, 2, 29))
+
+    def test_bill_does_not_appear_before_it_was_created(self):
+        self.assertEqual(self.statuses(12, 2025, date(2026, 11, 5))[0], {})
+
+    def test_paying_creates_an_expense_linked_to_the_bill(self):
+        response = self.pay(amount="1850.00", date="2026-11-08")
+
+        self.assertEqual(response.status_code, 201)
+        payment = Transaction.objects.get(id=response.json()["id"])
+        self.assertEqual(payment.fixed_bill, self.rent)
+        self.assertEqual(payment.type, Transaction.Type.EXPENSE)
+        self.assertEqual(payment.category, self.category)
+        self.assertEqual(payment.amount, Decimal("1850.00"))
+        self.assertEqual(response.json()["fixed_bill"], self.rent.id)
+
+        statuses, summary = self.statuses(11, 2026, date(2026, 11, 20))
+        self.assertEqual(statuses, {"Aluguel": "paid"})
+        self.assertEqual(summary["paid_total"], Decimal("1850.00"))
+        self.assertEqual(summary["pending_count"], 0)
+
+    def test_paying_uses_bill_amount_and_today_by_default(self):
+        response = self.pay()
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["amount"], "1800.00")
+
+    def test_cannot_pay_twice_in_the_same_month(self):
+        self.pay(date="2026-11-08")
+
+        response = self.pay(date="2026-11-20")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("já foi paga em novembro", response.json()["detail"])
+        self.assertEqual(self.pay(date="2026-12-08").status_code, 201)
+
+    def test_deleting_the_payment_makes_the_bill_pending_again(self):
+        payment_id = self.pay(date="2026-11-08").json()["id"]
+
+        self.client.delete(f"/api/transactions/{payment_id}/")
+
+        self.assertEqual(self.statuses(11, 2026, date(2026, 11, 9))[0], {"Aluguel": "pending"})
+
+    def test_deleting_the_bill_keeps_past_payments(self):
+        payment_id = self.pay(date="2026-11-08").json()["id"]
+
+        self.assertEqual(self.client.delete(f"/api/fixed-bills/{self.rent.id}/").status_code, 204)
+
+        payment = Transaction.objects.get(id=payment_id)
+        self.assertIsNone(payment.fixed_bill)
+
+    def test_create_update_and_validation(self):
+        created = self.client.post(
+            "/api/fixed-bills/",
+            {"description": "  Internet   fibra ", "amount": "99.90", "category": self.category.id},
+            content_type="application/json",
+        )
+        self.assertEqual(created.status_code, 201)
+        self.assertEqual(created.json()["description"], "Internet fibra")
+        self.assertIsNone(created.json()["due_day"])
+
+        bill_id = created.json()["id"]
+        updated = self.client.patch(
+            f"/api/fixed-bills/{bill_id}/", {"due_day": 15}, content_type="application/json"
+        )
+        self.assertEqual(updated.json()["due_day"], 15)
+
+        invalid = [
+            {"description": "", "amount": "10", "category": self.category.id},
+            {"description": "X", "amount": "0", "category": self.category.id},
+            {"description": "X", "amount": "10", "category": self.category.id, "due_day": 32},
+            {"description": "X", "amount": "10"},
+        ]
+        for payload in invalid:
+            with self.subTest(payload=payload):
+                response = self.client.post("/api/fixed-bills/", payload, content_type="application/json")
+                self.assertEqual(response.status_code, 400)
+
+    def test_list_endpoint_returns_status_and_summary(self):
+        response = self.client.get("/api/fixed-bills/?month=11&year=2026")
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["period"], {"month": 11, "year": 2026})
+        self.assertEqual(body["bills"][0]["description"], "Aluguel")
+        self.assertEqual(body["bills"][0]["due_date"], "2026-11-10")
+        self.assertEqual(body["summary"]["pending_total"], "1800.00")
+
+    def test_other_users_cannot_see_edit_or_pay(self):
+        foreign_category = Category.objects.create(name="Casa", user=self.other)
+        foreign = FixedBill.objects.create(
+            user=self.other, description="Conta do Bruno", amount=Decimal("50"), category=foreign_category
+        )
+
+        listed = [bill["description"] for bill in self.client.get("/api/fixed-bills/").json()["bills"]]
+        self.assertNotIn("Conta do Bruno", listed)
+        self.assertEqual(self.pay(bill=foreign).status_code, 404)
+
+        patch_response = self.client.patch(
+            f"/api/fixed-bills/{foreign.id}/", {"amount": "1"}, content_type="application/json"
+        )
+        self.assertEqual(patch_response.status_code, 404)
+
+        create_response = self.client.post(
+            "/api/fixed-bills/",
+            {"description": "X", "amount": "10", "category": foreign_category.id},
+            content_type="application/json",
+        )
+        self.assertEqual(create_response.status_code, 400)
+
+    def test_deleting_a_category_moves_its_bills_to_transfers(self):
+        response = self.client.delete(
+            "/api/categories/", {"id": self.category.id}, content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, 204)
+        self.rent.refresh_from_db()
+        self.assertEqual(self.rent.category.name, "Transferências")
+
+    def test_deleting_the_account_removes_bills(self):
+        self.pay(date="2026-11-08")
+
+        response = self.client.delete(
+            "/api/auth/account/", {"password": "senha-forte-123"}, content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(FixedBill.objects.filter(user_id=self.user.id).exists())

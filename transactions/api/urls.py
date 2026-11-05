@@ -1,5 +1,5 @@
 from django.urls import path
-from . import auth_views, views
+from . import auth_views, fixed_bills_views, views
 
 urlpatterns = [
     path("auth/csrf/", auth_views.csrf_cookie, name="auth-csrf"),
@@ -33,5 +33,20 @@ urlpatterns = [
         "transactions/<int:pk>/",
         views.transaction_detail_api,
         name="transaction-detail-api"
+    ),
+    path(
+        "fixed-bills/",
+        fixed_bills_views.fixed_bills_api,
+        name="fixed-bills-api"
+    ),
+    path(
+        "fixed-bills/<int:pk>/",
+        fixed_bills_views.fixed_bill_detail_api,
+        name="fixed-bill-detail-api"
+    ),
+    path(
+        "fixed-bills/<int:pk>/pay/",
+        fixed_bills_views.fixed_bill_pay_api,
+        name="fixed-bill-pay-api"
     ),
 ]

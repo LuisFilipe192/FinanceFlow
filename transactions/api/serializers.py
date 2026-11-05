@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from transactions.models import Transaction, Category
+from transactions.models import Transaction, Category, FixedBill
 
 class FinancialSummarySerializer(serializers.Serializer):
     income = serializers.DecimalField(
@@ -93,8 +93,9 @@ class TransactionSerializer(serializers.ModelSerializer):
             "date",
             "category",
             "category_name",
+            "fixed_bill",
         ]
-        read_only_fields = ["id", "category_name"]
+        read_only_fields = ["id", "category_name", "fixed_bill"]
 
     # Receita ou despesa é definido por "type"; o valor é sempre positivo.
     # A tela já impede valor zero ou negativo, mas uma requisição direta à
@@ -118,3 +119,68 @@ class TransactionSerializer(serializers.ModelSerializer):
 
         return category
 
+
+
+class FixedBillSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(
+        source="category.name",
+        read_only=True
+    )
+
+    class Meta:
+        model = FixedBill
+        fields = [
+            "id",
+            "description",
+            "amount",
+            "due_day",
+            "category",
+            "category_name",
+        ]
+        read_only_fields = ["id", "category_name"]
+        extra_kwargs = {
+            "description": {"error_messages": {"blank": "Informe a descrição da conta."}},
+            "category": {"error_messages": {"null": "Escolha uma categoria.", "required": "Escolha uma categoria."}},
+        }
+
+    def validate_description(self, description):
+        description = " ".join(description.split())
+
+        if not description:
+            raise serializers.ValidationError("Informe a descrição da conta.")
+
+        return description
+
+    def validate_amount(self, amount):
+        if amount <= 0:
+            raise serializers.ValidationError("O valor deve ser maior que zero.")
+
+        return amount
+
+    def validate_due_day(self, due_day):
+        if due_day is not None and not 1 <= due_day <= 31:
+            raise serializers.ValidationError("Use um dia entre 1 e 31.")
+
+        return due_day
+
+    def validate_category(self, category):
+        if category.user != self.context["request"].user:
+            raise serializers.ValidationError("Categoria inválida.")
+
+        return category
+
+
+class FixedBillPaymentSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        required=False
+    )
+
+    date = serializers.DateField(required=False)
+
+    def validate_amount(self, amount):
+        if amount <= 0:
+            raise serializers.ValidationError("O valor deve ser maior que zero.")
+
+        return amount

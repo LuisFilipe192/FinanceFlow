@@ -9,7 +9,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from transactions.models import Transaction, Category
+from transactions.models import Transaction, Category, FixedBill
 
 from transactions.services.dashboard import (
     get_financial_summary,
@@ -246,6 +246,11 @@ def categories_api(request):
             )
 
             Transaction.objects.filter(
+                user=request.user,
+                category=category
+            ).update(category=transfer_category)
+
+            FixedBill.objects.filter(
                 user=request.user,
                 category=category
             ).update(category=transfer_category)

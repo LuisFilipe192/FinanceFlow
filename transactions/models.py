@@ -34,6 +34,14 @@ class Transaction(models.Model):
         related_name="transactions"
     )
 
+    fixed_bill = models.ForeignKey(
+        "FixedBill",
+        on_delete=models.SET_NULL,
+        related_name="payments",
+        null=True,
+        blank=True
+    )
+
     def __str__(self):
         return self.description
 
@@ -56,3 +64,28 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
+
+
+class FixedBill(models.Model):
+    description = models.CharField(max_length=200)
+
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    due_day = models.PositiveSmallIntegerField(null=True, blank=True)
+
+    category = models.ForeignKey(
+        "Category",
+        on_delete=models.RESTRICT,
+        related_name="fixed_bills"
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="fixed_bills"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.description
