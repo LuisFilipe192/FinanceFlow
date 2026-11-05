@@ -5,8 +5,10 @@ from unittest.mock import patch
 from django.test import Client, TestCase
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import UserManager
+from django.core.cache import cache
 from django.db import IntegrityError
 from django.db.models import RestrictedError
+from rest_framework.throttling import UserRateThrottle
 
 from transactions.models import Transaction, Category
 from transactions.services.dashboard import (
@@ -767,3 +769,97 @@ class AccountUpdateTests(TestCase):
         self.client.logout()
 
         self.assertEqual(self.update_account({"username": "x"}).status_code, 401)
+
+
+class RateLimitTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.user = User.objects.create_user(username="ana", password="senha-forte-123")
+
+    def tearDown(self):
+        cache.clear()
+
+    def login(self, username, password):
+        return self.client.post(
+            "/api/auth/login/",
+            {"username": username, "password": password},
+            content_type="application/json",
+        )
+
+    def test_login_blocks_username_after_five_failures(self):
+        for _ in range(5):
+            self.assertEqual(self.login("ana", "errada").status_code, 401)
+
+        response = self.login("ana", "senha-forte-123")
+
+        self.assertEqual(response.status_code, 429)
+        self.assertGreater(int(response["Retry-After"]), 0)
+        self.assertFalse(self.client.get("/api/auth/session/").json()["authenticated"])
+
+    def test_username_limit_ignores_case(self):
+        for _ in range(5):
+            self.login("ANA", "errada")
+
+        self.assertEqual(self.login("ana", "senha-forte-123").status_code, 429)
+
+    def test_successful_logins_do_not_count(self):
+        for _ in range(10):
+            self.assertEqual(self.login("ana", "senha-forte-123").status_code, 200)
+
+    def test_login_blocks_ip_after_twenty_failures(self):
+        for number in range(20):
+            self.assertEqual(self.login(f"pessoa{number}", "errada").status_code, 401)
+
+        self.assertEqual(self.login("ana", "senha-forte-123").status_code, 429)
+
+    def test_register_blocks_ip_after_thirty_attempts(self):
+        for _ in range(30):
+            response = self.client.post("/api/auth/register/", {}, content_type="application/json")
+            self.assertEqual(response.status_code, 400)
+
+        response = self.client.post("/api/auth/register/", {}, content_type="application/json")
+
+        self.assertEqual(response.status_code, 429)
+
+    def test_account_deletion_blocks_after_five_wrong_passwords(self):
+        self.client.force_login(self.user)
+
+        for _ in range(5):
+            response = self.client.delete(
+                "/api/auth/account/",
+                {"password": "errada"},
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 400)
+
+        response = self.client.delete(
+            "/api/auth/account/",
+            {"password": "senha-forte-123"},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 429)
+        self.assertTrue(User.objects.filter(id=self.user.id).exists())
+
+    def test_email_change_blocks_after_five_wrong_passwords(self):
+        self.client.force_login(self.user)
+
+        def change_email(password):
+            return self.client.patch(
+                "/api/auth/account/",
+                {"email": "nova@example.com", "password": password},
+                content_type="application/json",
+            )
+
+        for _ in range(5):
+            self.assertEqual(change_email("errada").status_code, 400)
+
+        self.assertEqual(change_email("senha-forte-123").status_code, 429)
+
+    def test_api_throttles_authenticated_user(self):
+        self.client.force_login(self.user)
+
+        with patch.object(UserRateThrottle, "THROTTLE_RATES", {"user": "2/min"}):
+            self.assertEqual(self.client.get("/api/categories/").status_code, 200)
+            self.assertEqual(self.client.get("/api/categories/").status_code, 200)
+            self.assertEqual(self.client.get("/api/categories/").status_code, 429)

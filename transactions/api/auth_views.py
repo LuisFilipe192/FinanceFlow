@@ -11,6 +11,46 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from django.contrib.auth.password_validation import validate_password
+from django_ratelimit.core import get_usage
+
+
+REGISTER_LIMITS = (
+    ("auth-register-ip", "ip", "30/h"),
+)
+
+ACCOUNT_PASSWORD_LIMITS = (
+    ("auth-account-password", "user", "5/15m"),
+)
+
+
+def _login_limits(username):
+    return (
+        ("auth-login-ip", "ip", "20/15m"),
+        ("auth-login-username", lambda group, request: username.lower(), "5/15m"),
+    )
+
+
+def _blocked_for(request, limits):
+    for group, key, rate in limits:
+        usage = get_usage(request, group=group, key=key, rate=rate)
+        if usage is not None and usage["count"] >= usage["limit"]:
+            return max(usage["time_left"], 1)
+
+    return None
+
+
+def _count_attempt(request, limits):
+    for group, key, rate in limits:
+        get_usage(request, group=group, key=key, rate=rate, increment=True)
+
+
+def _too_many_attempts(retry_after):
+    response = _json_response(
+        {"detail": "Muitas tentativas. Aguarde alguns minutos e tente novamente."},
+        status=429,
+    )
+    response["Retry-After"] = str(retry_after)
+    return response
 
 
 def _json_payload(request):
@@ -135,6 +175,11 @@ def login_view(request):
             status=400,
         )
 
+    limits = _login_limits(username.strip())
+    retry_after = _blocked_for(request, limits)
+    if retry_after:
+        return _too_many_attempts(retry_after)
+
     user = authenticate(
         request,
         username=username.strip(),
@@ -142,6 +187,7 @@ def login_view(request):
     )
 
     if user is None:
+        _count_attempt(request, limits)
         return _json_response(
             {"detail": "Usuário ou senha inválidos."},
             status=401,
@@ -158,6 +204,12 @@ def login_view(request):
 @csrf_protect
 @require_POST
 def register_view(request):
+    retry_after = _blocked_for(request, REGISTER_LIMITS)
+    if retry_after:
+        return _too_many_attempts(retry_after)
+
+    _count_attempt(request, REGISTER_LIMITS)
+
     payload = _json_payload(request)
     if payload is None:
         return _json_response(
@@ -287,8 +339,14 @@ def _update_account(request, user):
 
         if not isinstance(password, str) or not password:
             errors["password"] = ["Confirme sua senha para alterar o e-mail."]
-        elif not user.check_password(password):
-            errors["password"] = ["Senha incorreta."]
+        else:
+            retry_after = _blocked_for(request, ACCOUNT_PASSWORD_LIMITS)
+            if retry_after:
+                return _too_many_attempts(retry_after)
+
+            if not user.check_password(password):
+                _count_attempt(request, ACCOUNT_PASSWORD_LIMITS)
+                errors["password"] = ["Senha incorreta."]
 
     if errors:
         return _json_response(
@@ -377,7 +435,12 @@ def account_view(request):
             status=400,
         )
 
+    retry_after = _blocked_for(request, ACCOUNT_PASSWORD_LIMITS)
+    if retry_after:
+        return _too_many_attempts(retry_after)
+
     if not user.check_password(password):
+        _count_attempt(request, ACCOUNT_PASSWORD_LIMITS)
         return _json_response(
             {
                 "detail": "Senha incorreta.",
