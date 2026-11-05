@@ -4,10 +4,7 @@ import Modal from "../Modal";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { getAccountSummary } from "../../services/auth";
-
-function pluralize(count, singular, plural) {
-    return `${count} ${count === 1 ? singular : plural}`;
-}
+import { pluralize } from "../../utils/format";
 
 function getDescription(summary) {
     if (!summary) {

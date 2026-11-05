@@ -7,7 +7,7 @@ import { Skeleton, SkeletonRows } from "../components/Skeleton";
 import TransactionFormModal from "../components/transactions/TransactionFormModal";
 import TransactionList from "../components/transactions/TransactionList";
 import { useToast } from "../context/ToastContext";
-import { formatCurrency } from "../utils/format";
+import { formatCurrency, pluralize } from "../utils/format";
 import { BEFORE_LOGOUT_EVENT } from "../services/api";
 import { getDashboard } from "../services/dashboard";
 import {
@@ -462,8 +462,8 @@ function Transactions() {
                         <h3>Histórico de transações</h3>
                         <span>
                             {isFiltering
-                                ? `${filteredTransactions.length} de ${transactions.length} lançamento(s)`
-                                : `${transactions.length} lançamento(s)`}
+                                ? `${filteredTransactions.length} de ${pluralize(transactions.length, "lançamento", "lançamentos")}`
+                                : pluralize(transactions.length, "lançamento", "lançamentos")}
                         </span>
                     </div>
                     <div className="transactions-header-divider"></div>

@@ -51,6 +51,7 @@ function TransactionList({ transactions, onEdit, onDelete, highlightId }) {
             {groups.map((group) => {
                 const totals = getDayTotals(group.items);
                 const dayLabel = formatDayLabel(group.date);
+                const showTotals = group.items.length > 1;
 
                 return (
                     <section className="transaction-group" key={group.date}>
@@ -61,13 +62,13 @@ function TransactionList({ transactions, onEdit, onDelete, highlightId }) {
                             </div>
 
                             <div className="transaction-group-totals">
-                                {totals.income > 0 && (
+                                {showTotals && totals.income > 0 && (
                                     <span className="income">
                                         + {formatCurrency(totals.income)}
                                     </span>
                                 )}
 
-                                {totals.expenses > 0 && (
+                                {showTotals && totals.expenses > 0 && (
                                     <span className="expense">
                                         − {formatCurrency(totals.expenses)}
                                     </span>
@@ -88,9 +89,9 @@ function TransactionList({ transactions, onEdit, onDelete, highlightId }) {
                                 >
                                     <div className={`transaction-icon ${variant}`}>
                                         {isIncome ? (
-                                            <ArrowDownLeft size={20} />
+                                            <ArrowDownLeft size={18} />
                                         ) : (
-                                            <ArrowUpRight size={20} />
+                                            <ArrowUpRight size={18} />
                                         )}
                                     </div>
 
@@ -102,40 +103,30 @@ function TransactionList({ transactions, onEdit, onDelete, highlightId }) {
                                         </div>
                                     </div>
 
-                                    <div className="transaction-details">
-                                        <strong className={`transaction-amount ${variant}`}>
-                                            {isIncome ? "+" : "−"} {formatCurrency(transaction.amount)}
-                                        </strong>
+                                    <strong className={`transaction-amount ${variant}`}>
+                                        {isIncome ? "+" : "−"} {formatCurrency(transaction.amount)}
+                                    </strong>
 
-                                        {/* Selo e ações dividem o mesmo espaço: no hover
-                                            o selo some e as ações aparecem no lugar. */}
-                                        <div className="transaction-trailing">
-                                            <span className={`transaction-type ${variant}`}>
-                                                {isIncome ? "Receita" : "Despesa"}
-                                            </span>
+                                    <div className="row-actions">
+                                        <button
+                                            type="button"
+                                            className="row-action"
+                                            aria-label={`Editar ${transaction.description}`}
+                                            title="Editar"
+                                            onClick={() => onEdit(transaction)}
+                                        >
+                                            <Pencil size={15} />
+                                        </button>
 
-                                            <div className="row-actions">
-                                                <button
-                                                    type="button"
-                                                    className="row-action"
-                                                    aria-label={`Editar ${transaction.description}`}
-                                                    title="Editar"
-                                                    onClick={() => onEdit(transaction)}
-                                                >
-                                                    <Pencil size={15} />
-                                                </button>
-
-                                                <button
-                                                    type="button"
-                                                    className="row-action danger"
-                                                    aria-label={`Excluir ${transaction.description}`}
-                                                    title="Excluir"
-                                                    onClick={() => onDelete(transaction)}
-                                                >
-                                                    <Trash2 size={15} />
-                                                </button>
-                                            </div>
-                                        </div>
+                                        <button
+                                            type="button"
+                                            className="row-action danger"
+                                            aria-label={`Excluir ${transaction.description}`}
+                                            title="Excluir"
+                                            onClick={() => onDelete(transaction)}
+                                        >
+                                            <Trash2 size={15} />
+                                        </button>
                                     </div>
                                 </div>
                             );
