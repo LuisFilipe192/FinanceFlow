@@ -8,6 +8,7 @@ on:
 env:
   DJANGO_SECRET_KEY: ci-only-not-a-real-secret
   DJANGO_DEBUG: "True"
+  DJANGO_FRONTEND_URL: http://localhost:5173
 
 concurrency:
   group: ci-${{ github.ref }}

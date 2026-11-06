@@ -6,9 +6,10 @@ from decimal import Decimal
 from datetime import date, datetime, timezone as dt_timezone
 from unittest.mock import patch
 
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import UserManager
+from django.core import mail
 from django.core.cache import cache
 from django.db import IntegrityError
 from django.db.models import RestrictedError
@@ -1007,6 +1008,15 @@ class PasswordChangeTests(TestCase):
         self.assertTrue(self.user.check_password("Carteira!Verde42"))
         self.assertTrue(self.client.get("/api/auth/session/").json()["authenticated"])
 
+    def test_warns_the_owner_by_email(self):
+        self.user.email = "ana@example.com"
+        self.user.save()
+
+        with patch("transactions.api.auth_views.send_in_background") as send:
+            self.change()
+
+        self.assertEqual(send.call_args.args[0].subject, "Sua senha do FinanceFlow foi alterada")
+
     def test_ends_other_sessions(self):
         other_device = Client()
         other_device.force_login(self.user)
@@ -1390,7 +1400,11 @@ class SecurityConfigurationTests(TestCase):
         return json.loads(result.stdout.strip().splitlines()[-1])
 
     def test_production_forces_https_and_secure_cookies(self):
-        config = self.read_settings(DJANGO_DEBUG="False", DJANGO_ALLOWED_HOSTS="meusite.com")
+        config = self.read_settings(
+            DJANGO_DEBUG="False",
+            DJANGO_ALLOWED_HOSTS="meusite.com",
+            DJANGO_FRONTEND_URL="https://meusite.com",
+        )
 
         self.assertFalse(config["debug"])
         self.assertTrue(config["ssl"])
@@ -1399,6 +1413,21 @@ class SecurityConfigurationTests(TestCase):
         self.assertTrue(config["csrf_secure"])
         self.assertTrue(config["http_only"])
         self.assertIsNone(config["proxy"])
+
+    def test_console_email_is_never_used_in_production(self):
+        code = (
+            "import django; django.setup(); from django.conf import settings; "
+            "print(settings.MAILERS['default']['BACKEND'])"
+        )
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            env={**os.environ, "DJANGO_SETTINGS_MODULE": "config.settings", "DJANGO_DEBUG": "False"},
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        self.assertIn("smtp", result.stdout)
 
     def test_proxy_header_is_only_trusted_when_enabled(self):
         config = self.read_settings(DJANGO_DEBUG="False", DJANGO_BEHIND_PROXY="True")
@@ -1420,3 +1449,194 @@ class SecurityConfigurationTests(TestCase):
         self.assertEqual(cookie["samesite"], "Lax")
         self.assertNotIn("password", response.content.decode())
         cache.clear()
+
+
+@override_settings(FRONTEND_URL="https://app.exemplo.com")
+class PasswordResetTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.user = User.objects.create_user(
+            username="ana", email="ana@example.com", password="senha-forte-123"
+        )
+
+        patcher = patch(
+            "transactions.api.auth_views.send_in_background",
+            side_effect=lambda message: message.send(),
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.addCleanup(cache.clear)
+
+    def request_reset(self, email="ana@example.com", **extra):
+        return self.client.post(
+            "/api/auth/password-reset/",
+            {"email": email},
+            content_type="application/json",
+            **extra,
+        )
+
+    def confirm(self, uid, token, password="Carteira!Verde42", confirmation=None):
+        return self.client.post(
+            "/api/auth/password-reset/confirm/",
+            {
+                "uid": uid,
+                "token": token,
+                "new_password": password,
+                "new_password_confirmation": confirmation or password,
+            },
+            content_type="application/json",
+        )
+
+    def link_parts(self):
+        link = next(word for word in mail.outbox[-1].body.split() if "reset-password" in word)
+        fragment = link.split("#", 1)[1]
+        parts = dict(item.split("=", 1) for item in fragment.split("&"))
+        return link, parts["uid"], parts["token"]
+
+    def test_same_answer_for_existing_and_unknown_email(self):
+        existing = self.request_reset()
+        unknown = self.request_reset("ninguem@example.com")
+
+        self.assertEqual(existing.status_code, 200)
+        self.assertEqual(unknown.status_code, 200)
+        self.assertEqual(existing.json(), unknown.json())
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["ana@example.com"])
+
+    def test_email_lookup_ignores_case(self):
+        self.request_reset("ANA@Example.com")
+
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_inactive_user_receives_nothing(self):
+        self.user.is_active = False
+        self.user.save()
+
+        self.assertEqual(self.request_reset().status_code, 200)
+        self.assertEqual(mail.outbox, [])
+
+    @override_settings(ALLOWED_HOSTS=["*"])
+    def test_link_uses_configured_address_not_the_host_header(self):
+        self.request_reset(HTTP_HOST="site-falso.com")
+
+        link, _, _ = self.link_parts()
+        self.assertTrue(link.startswith("https://app.exemplo.com/reset-password#"))
+        self.assertNotIn("site-falso", mail.outbox[0].body)
+
+    def test_valid_link_changes_password_and_warns_the_owner(self):
+        self.request_reset()
+        _, uid, token = self.link_parts()
+
+        response = self.confirm(uid, token)
+
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("Carteira!Verde42"))
+        self.assertEqual(mail.outbox[-1].subject, "Sua senha do FinanceFlow foi alterada")
+
+    def test_link_works_only_once(self):
+        self.request_reset()
+        _, uid, token = self.link_parts()
+        self.confirm(uid, token)
+
+        response = self.confirm(uid, token, password="Outra!Senha-Forte9")
+
+        self.assertEqual(response.status_code, 400)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("Carteira!Verde42"))
+
+    def test_link_expires(self):
+        self.request_reset()
+        _, uid, token = self.link_parts()
+
+        with override_settings(PASSWORD_RESET_TIMEOUT=-1):
+            response = self.confirm(uid, token)
+
+        self.assertEqual(response.status_code, 400)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("senha-forte-123"))
+
+    def test_link_dies_after_logging_in(self):
+        self.request_reset()
+        _, uid, token = self.link_parts()
+
+        self.client.post(
+            "/api/auth/login/",
+            {"username": "ana", "password": "senha-forte-123"},
+            content_type="application/json",
+        )
+        self.client.logout()
+
+        self.assertEqual(self.confirm(uid, token).status_code, 400)
+
+    def test_ends_every_open_session(self):
+        other_device = Client()
+        other_device.force_login(self.user)
+        self.request_reset()
+        _, uid, token = self.link_parts()
+
+        self.confirm(uid, token)
+
+        self.assertFalse(other_device.get("/api/auth/session/").json()["authenticated"])
+
+    def test_tampered_or_foreign_tokens_are_rejected_the_same_way(self):
+        other = User.objects.create_user(username="bruno", email="bruno@example.com", password="x")
+        self.request_reset()
+        _, uid, token = self.link_parts()
+        self.request_reset("bruno@example.com")
+        _, other_uid, _ = self.link_parts()
+
+        answers = [
+            self.confirm(uid, token + "x"),
+            self.confirm(other_uid, token),
+            self.confirm("nao-e-base64!", token),
+            self.confirm("OTk5OTk5", token),
+        ]
+
+        self.assertEqual({answer.status_code for answer in answers}, {400})
+        self.assertEqual(len({answer.content for answer in answers}), 1)
+        other.refresh_from_db()
+        self.assertTrue(other.check_password("x"))
+
+    def test_weak_or_mismatched_password_keeps_the_old_one_and_the_link(self):
+        self.request_reset()
+        _, uid, token = self.link_parts()
+
+        self.assertIn("new_password", self.confirm(uid, token, password="123").json()["errors"])
+        self.assertIn(
+            "new_password_confirmation",
+            self.confirm(uid, token, confirmation="outra-coisa").json()["errors"],
+        )
+        self.assertEqual(self.confirm(uid, token).status_code, 200)
+
+    def test_limits_emails_to_the_same_address_without_revealing_it(self):
+        responses = [self.request_reset() for _ in range(5)]
+
+        self.assertEqual({response.status_code for response in responses}, {200})
+        self.assertEqual(len(mail.outbox), 3)
+
+    def test_blocks_ip_after_too_many_requests(self):
+        for number in range(10):
+            self.assertEqual(self.request_reset(f"pessoa{number}@example.com").status_code, 200)
+
+        self.assertEqual(self.request_reset("outra@example.com").status_code, 429)
+
+    def test_blocks_guessing_tokens(self):
+        self.request_reset()
+        _, uid, token = self.link_parts()
+
+        for _ in range(10):
+            self.assertEqual(self.confirm(uid, "abc-def").status_code, 400)
+
+        self.assertEqual(self.confirm(uid, token).status_code, 429)
+
+    def test_requires_csrf_token(self):
+        client = Client(enforce_csrf_checks=True)
+
+        response = client.post(
+            "/api/auth/password-reset/", {"email": "ana@example.com"}, content_type="application/json"
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(mail.outbox, [])
+

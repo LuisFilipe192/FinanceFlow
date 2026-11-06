@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import { fillLogin, login, uniqueLetters } from "./support/helpers.js";
+import { runDjangoShell } from "./support/django.js";
 import { E2E_PREFIX, E2E_USER } from "./support/users.js";
 
 test.describe("Login", () => {
@@ -128,3 +129,76 @@ test.describe("Cadastro", () => {
         await expect(page.getByText("Informe um e-mail válido, como nome@exemplo.com.")).toBeVisible();
     });
 });
+
+test.describe("Recuperação de senha", () => {
+    function createUserWithResetLink() {
+        const username = `${E2E_PREFIX}reset_${uniqueLetters()}`;
+        const password = "Antiga!Senha-2026";
+
+        const output = runDjangoShell(
+            "from django.contrib.auth import get_user_model; " +
+            "from transactions.services.password_reset import build_reset_link; " +
+            `user = get_user_model().objects.create_user(username="${username}", ` +
+            `email="${username}@example.com", password="${password}"); ` +
+            "print(build_reset_link(user))"
+        );
+        const link = output.split(/\s+/).find((part) => part.includes("/reset-password#"));
+
+        return { username, password, path: link.slice(link.indexOf("/reset-password")) };
+    }
+
+    test("pedir o link mostra a mesma resposta para qualquer e-mail", async ({ page }) => {
+        await page.goto("/login");
+        await page.getByRole("link", { name: "Esqueci minha senha" }).click();
+        await expect(page).toHaveURL("/forgot-password");
+
+        await page.getByRole("button", { name: "Enviar link" }).click();
+        await expect(page.getByText("Informe seu e-mail.")).toBeVisible();
+
+        await page.getByLabel("E-mail").fill(`${E2E_PREFIX}ninguem@example.com`);
+        await page.getByRole("button", { name: "Enviar link" }).click();
+
+        await expect(page.getByRole("status")).toContainText(
+            "Se existir uma conta com esse e-mail, enviamos um link"
+        );
+    });
+
+    test("o link troca a senha, some da barra de endereços e não funciona de novo", async ({ page }) => {
+        const user = createUserWithResetLink();
+        const newPassword = "Nova!Senha-Forte-2026";
+
+        await page.goto(user.path);
+        await expect(page).toHaveURL("/reset-password");
+        expect(page.url()).not.toContain("token");
+
+        await page.getByLabel("Nova senha", { exact: true }).fill(newPassword);
+        await page.getByLabel("Confirme a nova senha").fill(newPassword);
+        await page.getByRole("button", { name: "Salvar nova senha" }).click();
+
+        await expect(page).toHaveURL("/login");
+        await expect(page.getByText("Senha redefinida. Entre com a senha nova.")).toBeVisible();
+
+        await fillLogin(page, { username: user.username, password: newPassword });
+        await expect(page).toHaveURL("/");
+
+        await page.getByRole("button", { name: `Conta de ${user.username}` }).click();
+        await page.getByRole("menuitem", { name: "Sair" }).click();
+        await expect(page).toHaveURL("/login");
+
+        await page.goto(user.path);
+        await page.getByLabel("Nova senha", { exact: true }).fill(newPassword);
+        await page.getByLabel("Confirme a nova senha").fill(newPassword);
+        await page.getByRole("button", { name: "Salvar nova senha" }).click();
+
+        await expect(page.getByRole("alert")).toHaveText("Este link é inválido ou expirou. Peça um novo.");
+        await expect(page.getByRole("link", { name: "Pedir um novo link" })).toBeVisible();
+    });
+
+    test("link incompleto pede um novo sem mostrar o formulário", async ({ page }) => {
+        await page.goto("/reset-password");
+
+        await expect(page.getByRole("alert")).toHaveText("Este link é inválido ou expirou. Peça um novo.");
+        await expect(page.getByLabel("Nova senha", { exact: true })).toHaveCount(0);
+    });
+});
+

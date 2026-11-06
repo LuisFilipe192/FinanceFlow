@@ -98,6 +98,33 @@ export async function changePassword({ currentPassword, newPassword, confirmatio
     });
 }
 
+export async function requestPasswordReset(email) {
+    await ensureCsrfCookie();
+
+    return apiRequest("/auth/password-reset/", {
+        method: "POST",
+        body: { email },
+        fallbackError: "Não foi possível enviar o link. Tente novamente.",
+        useServerMessage: true,
+    });
+}
+
+export async function confirmPasswordReset({ uid, token, password, confirmation }) {
+    await ensureCsrfCookie();
+
+    return apiRequest("/auth/password-reset/confirm/", {
+        method: "POST",
+        body: {
+            uid,
+            token,
+            new_password: password,
+            new_password_confirmation: confirmation,
+        },
+        fallbackError: "Não foi possível redefinir sua senha. Tente novamente.",
+        useServerMessage: true,
+    });
+}
+
 export async function deleteAccount(password) {
     await ensureCsrfCookie();
 

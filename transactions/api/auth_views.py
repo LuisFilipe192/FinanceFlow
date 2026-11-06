@@ -13,6 +13,15 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 from django.contrib.auth.password_validation import validate_password
 from django_ratelimit.core import get_usage
 
+from transactions.services.password_reset import (
+    build_password_changed_email,
+    build_reset_email,
+    find_user_for_reset,
+    find_user_from_uid,
+    is_valid_reset_token,
+    send_in_background,
+)
+
 
 REGISTER_LIMITS = (
     ("auth-register-ip", "ip", "30/h"),
@@ -21,6 +30,23 @@ REGISTER_LIMITS = (
 ACCOUNT_PASSWORD_LIMITS = (
     ("auth-account-password", "user", "5/15m"),
 )
+
+
+PASSWORD_RESET_IP_LIMITS = (
+    ("auth-reset-ip", "ip", "10/h"),
+)
+
+PASSWORD_RESET_CONFIRM_LIMITS = (
+    ("auth-reset-confirm-ip", "ip", "10/15m"),
+)
+
+INVALID_RESET_LINK = "Este link é inválido ou expirou. Peça um novo."
+
+
+def _reset_email_limits(email):
+    return (
+        ("auth-reset-email", lambda group, request: email.lower(), "3/h"),
+    )
 
 
 def _login_limits(username):
@@ -535,4 +561,109 @@ def password_view(request):
     user.save(update_fields=["password"])
     update_session_auth_hash(request, user)
 
+    if user.email:
+        send_in_background(build_password_changed_email(user))
+
     return _json_response({"detail": "Senha alterada."})
+
+
+@never_cache
+@csrf_protect
+@require_POST
+def password_reset_view(request):
+    retry_after = _blocked_for(request, PASSWORD_RESET_IP_LIMITS)
+    if retry_after:
+        return _too_many_attempts(retry_after)
+
+    _count_attempt(request, PASSWORD_RESET_IP_LIMITS)
+
+    payload = _json_payload(request)
+    if payload is None:
+        return _json_response(
+            {"detail": "Envie um objeto JSON válido."},
+            status=400,
+        )
+
+    raw_email = payload.get("email")
+
+    if not isinstance(raw_email, str) or not raw_email.strip():
+        return _json_response(
+            {
+                "detail": "Informe seu e-mail.",
+                "errors": {"email": ["Informe seu e-mail."]},
+            },
+            status=400,
+        )
+
+    email = raw_email.strip()
+    limits = _reset_email_limits(email)
+
+    if not _blocked_for(request, limits):
+        _count_attempt(request, limits)
+        user = find_user_for_reset(email)
+
+        if user is not None:
+            send_in_background(build_reset_email(user))
+
+    return _json_response({
+        "detail": "Se existir uma conta com esse e-mail, enviamos um link para redefinir a senha.",
+    })
+
+
+@never_cache
+@csrf_protect
+@require_POST
+def password_reset_confirm_view(request):
+    retry_after = _blocked_for(request, PASSWORD_RESET_CONFIRM_LIMITS)
+    if retry_after:
+        return _too_many_attempts(retry_after)
+
+    payload = _json_payload(request)
+    if payload is None:
+        return _json_response(
+            {"detail": "Envie um objeto JSON válido."},
+            status=400,
+        )
+
+    uid = payload.get("uid")
+    token = payload.get("token")
+    user = find_user_from_uid(uid) if isinstance(uid, str) else None
+
+    if not isinstance(token, str) or not is_valid_reset_token(user, token):
+        _count_attempt(request, PASSWORD_RESET_CONFIRM_LIMITS)
+        return _json_response({"detail": INVALID_RESET_LINK}, status=400)
+
+    new_password = payload.get("new_password")
+    confirmation = payload.get("new_password_confirmation")
+    errors = {}
+
+    if not isinstance(new_password, str) or not new_password:
+        errors["new_password"] = ["Informe a nova senha."]
+
+    if not isinstance(confirmation, str) or not confirmation:
+        errors["new_password_confirmation"] = ["Confirme a nova senha."]
+    elif isinstance(new_password, str) and new_password != confirmation:
+        errors["new_password_confirmation"] = ["As senhas não coincidem."]
+
+    if "new_password" not in errors:
+        try:
+            validate_password(new_password, user=user)
+        except ValidationError as error:
+            errors["new_password"] = error.messages
+
+    if errors:
+        return _json_response(
+            {
+                "detail": "Revise a nova senha.",
+                "errors": errors,
+            },
+            status=400,
+        )
+
+    user.set_password(new_password)
+    user.save(update_fields=["password"])
+
+    if user.email:
+        send_in_background(build_password_changed_email(user))
+
+    return _json_response({"detail": "Senha redefinida. Entre com a senha nova."})

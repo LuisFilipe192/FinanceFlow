@@ -2631,6 +2631,37 @@
     animation: insight-in 200ms var(--ease-out);
 }
 
+.auth-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px;
+    background: var(--accent-subtle);
+    color: var(--text-primary);
+    border: 1px solid var(--accent-border);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+}
+
+.auth-notice svg {
+    flex-shrink: 0;
+    color: var(--accent);
+}
+
+.auth-label-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.auth-label-row a {
+    color: var(--accent);
+    font-size: var(--text-xs);
+    font-weight: 600;
+}
+
 .auth-alert svg {
     flex-shrink: 0;
 }

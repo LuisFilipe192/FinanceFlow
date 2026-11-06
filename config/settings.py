@@ -145,9 +145,24 @@ STATIC_URL = 'static/'
 
 MAILERS = {
     'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+        'BACKEND': (
+            'transactions.dev_email.ReadableConsoleEmailBackend'
+            if DEBUG
+            else 'django.core.mail.backends.smtp.EmailBackend'
+        ),
     },
 }
+
+DEFAULT_FROM_EMAIL = os.environ.get("DJANGO_FROM_EMAIL", "FinanceFlow <noreply@financeflow.local>")
+
+PASSWORD_RESET_TIMEOUT = 60 * 60
+
+FRONTEND_URL = os.environ.get("DJANGO_FRONTEND_URL", "").rstrip("/")
+
+if not FRONTEND_URL:
+    raise ImproperlyConfigured(
+        "Defina DJANGO_FRONTEND_URL no arquivo .env (veja .env.example)."
+    )
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",

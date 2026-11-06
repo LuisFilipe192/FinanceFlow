@@ -12,7 +12,7 @@ Controle financeiro pessoal multiusuário, feito com Django REST Framework e Rea
 - **Transações por mês:** busca, filtro por tipo e exclusão com "Desfazer" por 5 segundos.
 - **Orçamento por categoria:** limite mensal opcional, com avisos a partir de 80% e ao passar de 100%.
 - **Contas fixas:** aluguel, internet e outros pagamentos mensais, com vencimento opcional. Nada é lançado sozinho: você confirma cada pagamento e pode ajustar o valor.
-- **Conta do usuário:** login por nome de usuário ou e-mail, edição de perfil, troca de senha e exclusão da conta com todos os dados.
+- **Conta do usuário:** login por nome de usuário ou e-mail, edição de perfil, troca de senha, recuperação de senha por e-mail e exclusão da conta com todos os dados.
 - **Celular:** navegação inferior e layout próprio para telas pequenas.
 
 ## Telas
@@ -91,6 +91,7 @@ São cerca de 160 testes, e o CI roda todos a cada push na `main`. O E2E liga o 
 - **Sessão do Django em vez de JWT.** O cookie `HttpOnly` não fica acessível ao JavaScript, e nada sensível é guardado em `localStorage`. As requisições que alteram dados usam proteção CSRF.
 - **A segurança fica no backend.** Toda consulta filtra pelo usuário logado, e o registro de outra pessoa responde 404, sem confirmar que ele existe.
 - **Nada sensível no navegador.** O cookie de sessão é `HttpOnly`, e `localStorage`, `sessionStorage` e IndexedDB ficam vazios, o que um teste E2E comprova. O build de produção sai sem source maps, e o CI reprova o bundle se aparecer um segredo ou uma variável `VITE_` com nome de chave.
+- **Recuperação de senha sem vazar contas.** A resposta é igual exista o e-mail ou não, e o envio roda em segundo plano para o tempo de resposta não revelar a diferença. O link é assinado, vale por 1 hora, funciona uma vez, traz o token no fragmento da URL e encerra todas as sessões ao ser usado.
 - **Rate limit por falhas.** O login conta só as tentativas erradas, por usuário e por IP, e o limite é conferido antes de testar a senha. Assim, quem está bloqueado não descobre se acertou.
 - **E-mail único sem modelo de usuário customizado.** Um índice único em `LOWER(email)`, criado por migration, garante a regra no banco mesmo com cadastros simultâneos.
 - **Pagamento de conta fixa é uma transação comum.** "Paga no mês" significa que existe uma transação vinculada naquele mês. Não há estado duplicado, e o pagamento entra sozinho no Dashboard e no orçamento.
@@ -117,6 +118,5 @@ frontend/
 ## Próximos passos
 
 - Publicar online, com PostgreSQL, variáveis de ambiente, HTTPS e Redis para o rate limit. O projeto ainda está em configuração de desenvolvimento.
-- Recuperação de senha por e-mail.
 - Exportação dos dados em CSV.
 - Recomendações com IA.

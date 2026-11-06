@@ -11,6 +11,8 @@ import Categories from "./pages/Categories";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 import "./App.css";
 
@@ -26,6 +28,8 @@ function App() {
                         {/* Públicas: só para quem NÃO está logado. */}
                         <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
                         <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
+                        <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
+                        <Route path="/reset-password" element={<ResetPassword />} />
 
                         {/* Privadas: exigem sessão. */}
                         <Route element={<RequireAuth><Layout /></RequireAuth>}>

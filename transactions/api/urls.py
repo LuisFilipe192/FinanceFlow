@@ -9,6 +9,12 @@ urlpatterns = [
     path("auth/logout/", auth_views.logout_view, name="auth-logout"),
     path("auth/account/", auth_views.account_view, name="auth-account"),
     path("auth/password/", auth_views.password_view, name="auth-password"),
+    path("auth/password-reset/", auth_views.password_reset_view, name="auth-password-reset"),
+    path(
+        "auth/password-reset/confirm/",
+        auth_views.password_reset_confirm_view,
+        name="auth-password-reset-confirm",
+    ),
     path(
         "dashboard/",
         views.dashboard_api,

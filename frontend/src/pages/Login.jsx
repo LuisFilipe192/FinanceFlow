@@ -98,7 +98,10 @@ function Login() {
                 </div>
 
                 <div className="auth-field">
-                    <label htmlFor="login-password">Senha</label>
+                    <div className="auth-label-row">
+                        <label htmlFor="login-password">Senha</label>
+                        <Link to="/forgot-password">Esqueci minha senha</Link>
+                    </div>
                     <PasswordInput
                         id="login-password"
                         autoComplete="current-password"
