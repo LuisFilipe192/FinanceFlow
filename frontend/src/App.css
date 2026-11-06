@@ -1835,6 +1835,34 @@
     margin-bottom: 24px;
 }
 
+.fixed-bills-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.fixed-bills-header .transactions-table-header {
+    margin-bottom: 0;
+}
+
+.fixed-bills-header + .transactions-header-divider {
+    margin-top: 20px;
+}
+
+.fixed-bills-header .secondary-button {
+    flex-shrink: 0;
+    min-height: 36px;
+    padding: 0 14px;
+}
+
+@media (hover: hover) {
+    .fixed-bill:hover .row-actions,
+    .fixed-bill:focus-within .row-actions {
+        opacity: 1;
+    }
+}
+
 .fixed-bills-list {
     display: flex;
     flex-direction: column;
@@ -1921,8 +1949,35 @@
 
 @media (max-width: 600px) {
     .fixed-bill {
-        padding: 8px 4px;
-        gap: 10px;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        grid-template-areas:
+            "icon info amount"
+            ". pay tools";
+        gap: 6px 10px;
+        padding: 10px 4px;
+    }
+
+    .fixed-bill-icon {
+        grid-area: icon;
+    }
+
+    .fixed-bill-info {
+        grid-area: info;
+    }
+
+    .fixed-bill-amount {
+        grid-area: amount;
+    }
+
+    .fixed-bill-pay.secondary-button {
+        grid-area: pay;
+        justify-self: start;
+    }
+
+    .fixed-bill .row-actions {
+        grid-area: tools;
+        justify-self: end;
     }
 }
 

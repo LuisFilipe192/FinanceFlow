@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, CircleCheck, CircleDashed, Clock } from "lucide-react";
+import { AlertTriangle, CircleCheck, CircleDashed, Clock, Pencil, Plus, Trash2 } from "lucide-react";
 
+import BillFormModal from "./BillFormModal";
 import PayBillModal from "./PayBillModal";
-import { getFixedBills } from "../../services/fixedBills";
+import ConfirmDialog from "../ConfirmDialog";
+import { useToast } from "../../context/ToastContext";
+import { deleteFixedBill, getFixedBills } from "../../services/fixedBills";
 import { getBillStatusLabel } from "../../utils/fixedBills";
 import { formatCurrency } from "../../utils/format";
 
@@ -13,9 +16,17 @@ const STATUS_ICONS = {
     overdue: AlertTriangle,
 };
 
-function FixedBillsCard({ period, refreshKey, onPaid }) {
+function FixedBillsCard({ period, categories, refreshKey, onPaid }) {
+    const showToast = useToast();
+
     const [data, setData] = useState(null);
+    const [reloadKey, setReloadKey] = useState(0);
     const [billToPay, setBillToPay] = useState(null);
+    const [billToDelete, setBillToDelete] = useState(null);
+    const [deleting, setDeleting] = useState(false);
+    // showForm abre o modal; editingBill diz se é edição (objeto) ou criação (null).
+    const [showForm, setShowForm] = useState(false);
+    const [editingBill, setEditingBill] = useState(null);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -27,55 +38,126 @@ function FixedBillsCard({ period, refreshKey, onPaid }) {
             });
 
         return () => controller.abort();
-    }, [period, refreshKey]);
+    }, [period, refreshKey, reloadKey]);
 
-    if (!data || data.bills.length === 0) return null;
+    function openForm(bill = null) {
+        setEditingBill(bill);
+        setShowForm(true);
+    }
+
+    function closeForm() {
+        setShowForm(false);
+        setEditingBill(null);
+    }
+
+    function handleSaved(bill, isEditing) {
+        closeForm();
+        setReloadKey((current) => current + 1);
+        showToast({
+            type: "success",
+            message: isEditing ? `Conta "${bill.description}" atualizada.` : `Conta "${bill.description}" cadastrada.`,
+        });
+    }
+
+    async function handleDelete() {
+        try {
+            setDeleting(true);
+            await deleteFixedBill(billToDelete.id);
+
+            showToast({ type: "success", message: `Conta "${billToDelete.description}" excluída.` });
+            setBillToDelete(null);
+            setReloadKey((current) => current + 1);
+        } catch (error) {
+            console.error(error);
+            showToast({ type: "error", message: error.message });
+        } finally {
+            setDeleting(false);
+        }
+    }
+
+    if (!data) return null;
 
     const paidCount = data.bills.filter((bill) => bill.status === "paid").length;
     const pendingTotal = Number(data.summary.pending_total);
 
     return (
         <div className="transactions-table-card fixed-bills-card">
-            <div className="transactions-table-header">
-                <h3>Contas fixas do mês</h3>
-                <span>
-                    {paidCount} de {data.bills.length} pagas
-                    {pendingTotal > 0 && ` · faltam ${formatCurrency(pendingTotal)}`}
-                </span>
+            <div className="fixed-bills-header">
+                <div className="transactions-table-header">
+                    <h3>Contas fixas do mês</h3>
+                    <span>
+                        {data.bills.length === 0
+                            ? "Aluguel, internet, assinaturas: pagamentos que se repetem todo mês."
+                            : `${paidCount} de ${data.bills.length} pagas`}
+                        {pendingTotal > 0 && ` · faltam ${formatCurrency(pendingTotal)}`}
+                    </span>
+                </div>
+
+                <button type="button" className="secondary-button" onClick={() => openForm()}>
+                    <Plus size={16} />
+                    Nova conta
+                </button>
             </div>
-            <div className="transactions-header-divider"></div>
 
-            <ul className="fixed-bills-list">
-                {data.bills.map((bill) => {
-                    const Icon = STATUS_ICONS[bill.status];
+            {data.bills.length > 0 && (
+                <>
+                    <div className="transactions-header-divider"></div>
 
-                    return (
-                        <li className={`fixed-bill ${bill.status}`} key={bill.id}>
-                            <Icon size={18} className="fixed-bill-icon" />
+                    <ul className="fixed-bills-list">
+                        {data.bills.map((bill) => {
+                            const Icon = STATUS_ICONS[bill.status];
 
-                            <div className="fixed-bill-info">
-                                <strong>{bill.description}</strong>
-                                <span>{bill.category_name} · {getBillStatusLabel(bill)}</span>
-                            </div>
+                            return (
+                                <li className={`fixed-bill ${bill.status}`} key={bill.id}>
+                                    <Icon size={18} className="fixed-bill-icon" />
 
-                            <strong className="fixed-bill-amount">
-                                {formatCurrency(bill.payment ? bill.payment.amount : bill.amount)}
-                            </strong>
+                                    <div className="fixed-bill-info">
+                                        <strong>{bill.description}</strong>
+                                        <span>{bill.category_name} · {getBillStatusLabel(bill)}</span>
+                                    </div>
 
-                            {bill.status !== "paid" && (
-                                <button
-                                    type="button"
-                                    className="secondary-button fixed-bill-pay"
-                                    aria-label={`Pagar ${bill.description}`}
-                                    onClick={() => setBillToPay(bill)}
-                                >
-                                    Pagar
-                                </button>
-                            )}
-                        </li>
-                    );
-                })}
-            </ul>
+                                    <strong className="fixed-bill-amount">
+                                        {formatCurrency(bill.payment ? bill.payment.amount : bill.amount)}
+                                    </strong>
+
+                                    {bill.status !== "paid" && (
+                                        <button
+                                            type="button"
+                                            className="secondary-button fixed-bill-pay"
+                                            aria-label={`Pagar ${bill.description}`}
+                                            onClick={() => setBillToPay(bill)}
+                                        >
+                                            Pagar
+                                        </button>
+                                    )}
+
+                                    <div className="row-actions">
+                                        <button
+                                            type="button"
+                                            className="row-action"
+                                            aria-label={`Editar conta ${bill.description}`}
+                                            title="Editar"
+                                            onClick={() => openForm(bill)}
+                                        >
+                                            <Pencil size={15} />
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            className="row-action danger"
+                                            aria-label={`Excluir conta ${bill.description}`}
+                                            title="Excluir"
+                                            onClick={() => setBillToDelete(bill)}
+                                        >
+                                            <Trash2 size={15} />
+                                        </button>
+                                    </div>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </>
+            )}
 
             {billToPay && (
                 <PayBillModal
@@ -86,6 +168,27 @@ function FixedBillsCard({ period, refreshKey, onPaid }) {
                         setBillToPay(null);
                         onPaid(payment);
                     }}
+                />
+            )}
+
+            {showForm && (
+                <BillFormModal
+                    bill={editingBill}
+                    categories={categories}
+                    onSaved={handleSaved}
+                    onClose={closeForm}
+                />
+            )}
+
+            {billToDelete && (
+                <ConfirmDialog
+                    title="Excluir conta fixa?"
+                    description={`"${billToDelete.description}" deixa de aparecer nos próximos meses. Os pagamentos já registrados continuam nas suas transações.`}
+                    confirmLabel="Excluir conta"
+                    loadingLabel="Excluindo..."
+                    loading={deleting}
+                    onConfirm={handleDelete}
+                    onCancel={() => setBillToDelete(null)}
                 />
             )}
         </div>

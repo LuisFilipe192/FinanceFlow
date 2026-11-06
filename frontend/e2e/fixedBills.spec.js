@@ -46,4 +46,54 @@ test.describe("Contas fixas", () => {
 
         await expect(bill).toContainText("Sem vencimento", { timeout: 9_000 });
     });
+
+    test("cadastra, edita e exclui uma conta sem apagar os pagamentos", async ({ page }) => {
+        const description = `Aluguel ${uniqueLetters()}`;
+
+        await login(page);
+        await page.goto("/transactions");
+
+        await page.getByRole("button", { name: "Nova conta" }).click();
+        const createDialog = page.getByRole("dialog", { name: "Nova conta fixa" });
+
+        await createDialog.getByRole("button", { name: "Cadastrar conta" }).click();
+        await expect(createDialog.getByText("Informe o nome da conta.")).toBeVisible();
+        await expect(createDialog.getByText("Informe o valor da conta.")).toBeVisible();
+
+        await createDialog.getByLabel("Nome da conta").fill(description);
+        await createDialog.getByLabel("Valor").fill("180000");
+        await createDialog.getByLabel("Dia do vencimento (opcional)").fill("40");
+        await createDialog.getByRole("button", { name: "Cadastrar conta" }).click();
+        await expect(createDialog.getByText("Use um dia entre 1 e 31.")).toBeVisible();
+
+        await createDialog.getByLabel("Dia do vencimento (opcional)").fill("");
+        await createDialog.getByRole("button", { name: "Cadastrar conta" }).click();
+        await expect(page.getByText(`Conta "${description}" cadastrada.`)).toBeVisible();
+
+        const bill = page.locator(".fixed-bill", { hasText: description });
+        await expect(bill).toContainText(money("R$ 1.800,00"));
+
+        await bill.hover();
+        await bill.getByRole("button", { name: `Editar conta ${description}` }).click();
+        const editDialog = page.getByRole("dialog", { name: "Editar conta fixa" });
+        await expect(editDialog.getByLabel("Nome da conta")).toHaveValue(description);
+        await editDialog.getByLabel("Valor").fill("190000");
+        await editDialog.getByRole("button", { name: "Salvar alterações" }).click();
+        await expect(bill).toContainText(money("R$ 1.900,00"));
+
+        await bill.getByRole("button", { name: `Pagar ${description}` }).click();
+        const payDialog = page.getByRole("dialog", { name: `Pagar ${description}` });
+        await payDialog.getByRole("button", { name: /Pagar R\$/ }).click();
+        await expect(bill).toContainText(/Paga em/);
+
+        await bill.hover();
+        await bill.getByRole("button", { name: `Excluir conta ${description}` }).click();
+        await page.getByRole("dialog", { name: "Excluir conta fixa?" })
+            .getByRole("button", { name: "Excluir conta" })
+            .click();
+
+        await expect(page.getByText(`Conta "${description}" excluída.`)).toBeVisible();
+        await expect(bill).toHaveCount(0);
+        await expect(page.locator(".transaction-row", { hasText: description })).toBeVisible();
+    });
 });

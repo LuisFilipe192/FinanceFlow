@@ -2,6 +2,7 @@ from calendar import monthrange
 from datetime import date
 from decimal import Decimal
 
+from django.db.models import F
 from django.utils import timezone
 
 from transactions.models import FixedBill, Transaction
@@ -58,7 +59,12 @@ def get_fixed_bills_for_period(user, month, year, today=None):
         "overdue_count": 0,
     }
 
-    for bill in FixedBill.objects.filter(user=user).select_related("category").order_by("due_day", "description"):
+    bills_by_due_day = FixedBill.objects.filter(user=user).select_related("category").order_by(
+        F("due_day").asc(nulls_last=True),
+        "description",
+    )
+
+    for bill in bills_by_due_day:
         payment = payments.get(bill.id)
         created = timezone.localdate(bill.created_at)
 

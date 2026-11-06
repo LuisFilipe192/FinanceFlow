@@ -1186,6 +1186,14 @@ class FixedBillTests(TestCase):
         self.assertEqual(self.statuses(11, 2026, date(2026, 11, 30))[0], {"Aluguel": "pending"})
         self.assertEqual(self.statuses(10, 2026, date(2026, 11, 1))[0], {"Aluguel": "overdue"})
 
+    def test_bills_are_sorted_by_due_day_with_no_due_day_last(self):
+        FixedBill.objects.create(user=self.user, description="Academia", amount=Decimal("100"), category=self.category)
+        FixedBill.objects.create(user=self.user, description="Internet", amount=Decimal("99"), due_day=4, category=self.category)
+
+        entries, _ = get_fixed_bills_for_period(self.user, 11, 2026, date(2026, 11, 5))
+
+        self.assertEqual([entry["bill"].description for entry in entries], ["Internet", "Aluguel", "Academia"])
+
     def test_due_day_31_falls_on_the_last_day_of_short_months(self):
         self.rent.due_day = 31
 

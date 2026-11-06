@@ -163,6 +163,7 @@ function Transactions() {
                 event.key.toLowerCase() !== "n" ||
                 event.ctrlKey || event.metaKey || event.altKey ||
                 showForm ||
+                document.querySelector('[role="dialog"]') ||
                 isTypingInField(event.target)
             ) {
                 return;
@@ -503,6 +504,7 @@ function Transactions() {
 
                 <FixedBillsCard
                     period={period}
+                    categories={categories}
                     refreshKey={billsRefreshKey}
                     onPaid={(payment) => handleTransactionSaved(payment, false)}
                 />
