@@ -6,14 +6,16 @@ import {
     Settings,
 } from "lucide-react";
 
-import { NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 
 import Brand from "./Brand";
 
 function Sidebar() {
     return (
         <aside className="sidebar">
-            <Brand />
+            <Link to="/" className="sidebar-brand-link" aria-label="FinanceFlow: ir para a visão geral">
+                <Brand />
+            </Link>
 
             <div className="sidebar-label">Menu</div>
 

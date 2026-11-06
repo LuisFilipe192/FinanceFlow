@@ -49,6 +49,11 @@
     color: var(--accent);
 }
 
+.sidebar-brand-link {
+    display: block;
+    border-radius: var(--radius-md);
+}
+
 .sidebar-label,
 .header-overline {
     font-size: var(--text-2xs);

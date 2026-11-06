@@ -8,6 +8,15 @@ const MONTHS = [
 ];
 
 test.describe("Dashboard", () => {
+    test("clicar na marca volta para a visão geral de qualquer tela", async ({ page }) => {
+        for (const path of ["/transactions", "/categories", "/settings"]) {
+            await page.goto(path);
+            await page.getByRole("link", { name: /ir para a visão geral/ }).click();
+            await expect(page).toHaveURL("/");
+            await expect(page.getByRole("heading", { name: "Visão geral" })).toBeVisible();
+        }
+    });
+
     test.beforeEach(async ({ page }) => {
         await login(page);
     });
