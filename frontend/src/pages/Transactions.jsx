@@ -302,6 +302,10 @@ function Transactions() {
         showToast({ type: "success", message: `${savedText}${balanceText}` });
     }
 
+    function handleCategoryCreated(category) {
+        setCategories((previous) => [...previous, category]);
+    }
+
     function restoreTransaction(transaction) {
         const currentPeriod = periodRef.current;
 
@@ -506,6 +510,7 @@ function Transactions() {
                     period={period}
                     categories={categories}
                     refreshKey={billsRefreshKey}
+                    onCategoryCreated={handleCategoryCreated}
                     onPaid={(payment) => handleTransactionSaved(payment, false)}
                 />
 
@@ -554,9 +559,7 @@ function Transactions() {
                 <TransactionFormModal
                     transaction={editingTransaction}
                     categories={categories}
-                    onCategoryCreated={(category) =>
-                        setCategories((previous) => [...previous, category])
-                    }
+                    onCategoryCreated={handleCategoryCreated}
                     onSaved={handleTransactionSaved}
                     onClose={closeForm}
                 />

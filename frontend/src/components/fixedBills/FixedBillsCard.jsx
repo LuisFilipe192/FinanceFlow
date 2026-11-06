@@ -16,7 +16,7 @@ const STATUS_ICONS = {
     overdue: AlertTriangle,
 };
 
-function FixedBillsCard({ period, categories, refreshKey, onPaid }) {
+function FixedBillsCard({ period, categories, refreshKey, onCategoryCreated, onPaid }) {
     const showToast = useToast();
 
     const [data, setData] = useState(null);
@@ -175,6 +175,7 @@ function FixedBillsCard({ period, categories, refreshKey, onPaid }) {
                 <BillFormModal
                     bill={editingBill}
                     categories={categories}
+                    onCategoryCreated={onCategoryCreated}
                     onSaved={handleSaved}
                     onClose={closeForm}
                 />

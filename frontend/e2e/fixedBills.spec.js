@@ -47,6 +47,37 @@ test.describe("Contas fixas", () => {
         await expect(bill).toContainText("Sem vencimento", { timeout: 9_000 });
     });
 
+    test("cria uma categoria sem sair do cadastro da conta", async ({ page }) => {
+        const description = `Escola ${uniqueLetters()}`;
+        const category = `Educação ${uniqueLetters()}`;
+
+        await login(page);
+        await page.goto("/transactions");
+
+        await page.getByRole("button", { name: "Nova conta" }).click();
+        const dialog = page.getByRole("dialog", { name: "Nova conta fixa" });
+
+        await dialog.getByLabel("Nome da conta").fill(description);
+        await dialog.getByLabel("Valor").fill("45000");
+
+        await dialog.getByRole("button", { name: "Criar nova categoria" }).click();
+        const categoryName = dialog.getByLabel("Nome da nova categoria");
+        await expect(categoryName).toBeFocused();
+
+        await categoryName.fill("Transferências");
+        await categoryName.press("Enter");
+        await expect(dialog.getByText("Essa categoria já está cadastrada.")).toBeVisible();
+        await expect(dialog).toBeVisible();
+
+        await categoryName.fill(category);
+        await categoryName.press("Enter");
+        await expect(dialog.getByRole("button", { name: "Criar nova categoria" })).toBeVisible();
+
+        await dialog.getByRole("button", { name: "Cadastrar conta" }).click();
+
+        await expect(page.locator(".fixed-bill", { hasText: description })).toContainText(category);
+    });
+
     test("o resumo do Dashboard avisa quanto falta pagar", async ({ page }) => {
         const user = { username: `${E2E_PREFIX}contas_${uniqueLetters()}`, password: "Contas!E2E-2026" };
 

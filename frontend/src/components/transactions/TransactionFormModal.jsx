@@ -1,18 +1,16 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
 
 import DatePicker from "react-datepicker";
 import { ptBR } from "date-fns/locale";
 import "react-datepicker/dist/react-datepicker.css";
 
+import CategoryPicker from "../categories/CategoryPicker";
 import CurrencyInput from "../CurrencyInput";
 import Modal from "../Modal";
-import Select from "../Select";
 import { centsToNumber, formatCurrency, formatDateToISO, numberToCents, parseISODate } from "../../utils/format";
 import {
     createTransaction,
     updateTransaction,
-    createCategory,
 } from "../../services/transactions";
 import { DEFAULT_CATEGORY_NAME } from "../../utils/categories";
 
@@ -54,11 +52,6 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
     const [formError, setFormError] = useState("");
     const [saving, setSaving] = useState(false);
 
-    const [showCategoryInput, setShowCategoryInput] = useState(false);
-    const [newCategoryName, setNewCategoryName] = useState("");
-    const [categoryError, setCategoryError] = useState("");
-    const [savingCategory, setSavingCategory] = useState(false);
-
     function validateForm() {
         const errors = {};
 
@@ -83,49 +76,6 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
         setFieldErrors(errors);
 
         return Object.keys(errors).length === 0;
-    }
-
-    async function handleCreateCategory() {
-        // Mesma regra do backend: letras (com acentos) separadas por um espaço.
-        const name = newCategoryName.trim().replace(/\s+/g, " ");
-
-        if (!name) {
-            setCategoryError("Informe o nome da categoria.");
-            return;
-        }
-
-        if (!/^\p{L}+(?: \p{L}+)*$/u.test(name)) {
-            setCategoryError("Use apenas letras e espaços.");
-            return;
-        }
-
-        if (name.length > 100) {
-            setCategoryError("Use no máximo 100 caracteres.");
-            return;
-        }
-
-        try {
-            setSavingCategory(true);
-            setCategoryError("");
-
-            const newCategory = await createCategory(name);
-
-            onCategoryCreated(newCategory);
-
-            setFormData((previous) => ({
-                ...previous,
-                category: String(newCategory.id),
-            }));
-
-            setNewCategoryName("");
-            setShowCategoryInput(false);
-
-        } catch (error) {
-            console.error(error);
-            setCategoryError("Não foi possível cadastrar a categoria.");
-        } finally {
-            setSavingCategory(false);
-        }
     }
 
     async function handleSubmit(event) {
@@ -192,10 +142,6 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
             : `Adicionar ${typeLabel}`;
     }
 
-    const categoryOptions = categories.map((category) => ({
-        value: String(category.id),
-        label: category.name,
-    }));
 
     return (
         <Modal
@@ -277,90 +223,17 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
                     </span>
                 )}
 
-                {!showCategoryInput ? (
-                    <>
-                        <label htmlFor="transaction-category">Categoria</label>
-
-                        <Select
-                            id="transaction-category"
-                            value={formData.category}
-                            options={categoryOptions}
-                            placeholder="Sem categoria"
-                            onChange={(category) =>
-                                setFormData((previous) => ({ ...previous, category }))
-                            }
-                        />
-
-                        <button
-                            type="button"
-                            className="secondary-button"
-                            onClick={() => {
-                                setShowCategoryInput(true);
-                                setCategoryError("");
-                            }}
-                        >
-                            <Plus size={16} />
-                            Criar nova categoria
-                        </button>
-                    </>
-                ) : (
-                    <div className="category-create-form">
-                        <label htmlFor="new-category-name">Nome da nova categoria</label>
-
-                        <input
-                            id="new-category-name"
-                            type="text"
-                            placeholder="Digite o nome da categoria"
-                            maxLength={100}
-                            value={newCategoryName}
-                            onChange={(event) => {
-                                const value = event.target.value;
-
-                                if (/[0-9]/.test(value)) {
-                                    setCategoryError(
-                                        "Não são permitidos números. Digite apenas letras."
-                                    );
-
-                                    setTimeout(() => {
-                                        setCategoryError("");
-                                    }, 3000);
-
-                                    return;
-                                }
-
-                                setNewCategoryName(value);
-                                setCategoryError("");
-                            }}
-                        />
-
-                        <button
-                            type="button"
-                            className="primary-button"
-                            onClick={handleCreateCategory}
-                            disabled={savingCategory}
-                        >
-                            {savingCategory ? "Salvando..." : "Salvar categoria"}
-                        </button>
-
-                        <button
-                            type="button"
-                            className="secondary-button"
-                            onClick={() => {
-                                setShowCategoryInput(false);
-                                setNewCategoryName("");
-                                setCategoryError("");
-                            }}
-                        >
-                            Cancelar
-                        </button>
-
-                        {categoryError && (
-                            <span className="field-error">
-                                {categoryError}
-                            </span>
-                        )}
-                    </div>
-                )}
+                <label htmlFor="transaction-category">Categoria</label>
+                <CategoryPicker
+                    id="transaction-category"
+                    value={formData.category}
+                    categories={categories}
+                    placeholder="Sem categoria"
+                    onChange={(category) =>
+                        setFormData((previous) => ({ ...previous, category }))
+                    }
+                    onCategoryCreated={onCategoryCreated}
+                />
 
                 <label htmlFor="transaction-date">Data</label>
                 <DatePicker

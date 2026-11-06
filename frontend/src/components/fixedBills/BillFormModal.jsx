@@ -1,8 +1,8 @@
 import { useState } from "react";
 
+import CategoryPicker from "../categories/CategoryPicker";
 import CurrencyInput from "../CurrencyInput";
 import Modal from "../Modal";
-import Select from "../Select";
 import { createFixedBill, updateFixedBill } from "../../services/fixedBills";
 import { DEFAULT_CATEGORY_NAME } from "../../utils/categories";
 import { centsToNumber, numberToCents } from "../../utils/format";
@@ -30,7 +30,7 @@ function firstMessage(value) {
     return Array.isArray(value) ? value[0] : value;
 }
 
-function BillFormModal({ bill, categories, onSaved, onClose }) {
+function BillFormModal({ bill, categories, onCategoryCreated, onSaved, onClose }) {
     const isEditing = Boolean(bill);
 
     const [description, setDescription] = useState(bill?.description ?? "");
@@ -128,14 +128,15 @@ function BillFormModal({ bill, categories, onSaved, onClose }) {
                 {errors.amount && <span className="field-error">{errors.amount}</span>}
 
                 <label htmlFor="bill-category">Categoria</label>
-                <Select
+                <CategoryPicker
                     id="bill-category"
                     value={category}
-                    options={categories.map((item) => ({ value: String(item.id), label: item.name }))}
+                    categories={categories}
                     onChange={(value) => {
                         setCategory(value);
                         clearError("category");
                     }}
+                    onCategoryCreated={onCategoryCreated}
                 />
                 {errors.category && <span className="field-error">{errors.category}</span>}
 
