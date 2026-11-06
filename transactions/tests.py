@@ -1,5 +1,5 @@
 from decimal import Decimal
-from datetime import date
+from datetime import date, datetime, timezone as dt_timezone
 from unittest.mock import patch
 
 from django.test import Client, TestCase
@@ -1326,3 +1326,42 @@ class FixedBillTests(TestCase):
 
         self.assertEqual(response.status_code, 204)
         self.assertFalse(FixedBill.objects.filter(user_id=self.user.id).exists())
+
+
+class BrazilTimezoneTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="ana", password="senha-forte-123")
+        self.category = Category.objects.create(name="Moradia", user=self.user)
+
+    def at_utc(self, *moment):
+        return patch("django.utils.timezone.now", return_value=datetime(*moment, tzinfo=dt_timezone.utc))
+
+    def test_after_9pm_in_brazil_it_is_still_the_same_day(self):
+        bill = FixedBill.objects.create(
+            user=self.user, description="Energia", amount=Decimal("100"), due_day=6, category=self.category
+        )
+        FixedBill.objects.filter(id=bill.id).update(created_at="2026-01-01T12:00:00Z")
+
+        with self.at_utc(2026, 11, 7, 0, 30):
+            self.client.force_login(self.user)
+            response = self.client.get("/api/fixed-bills/")
+
+        self.assertEqual(response.json()["bills"][0]["status"], "due_today")
+
+    def test_dashboard_stays_in_the_current_month_on_the_last_night(self):
+        with self.at_utc(2026, 12, 1, 0, 30):
+            self.client.force_login(self.user)
+            response = self.client.get("/api/dashboard/")
+
+        self.assertEqual(response.json()["period"], {"month": 11, "year": 2026})
+
+    def test_payment_without_date_uses_the_local_day(self):
+        bill = FixedBill.objects.create(
+            user=self.user, description="Energia", amount=Decimal("100"), category=self.category
+        )
+
+        with self.at_utc(2026, 11, 7, 0, 30):
+            self.client.force_login(self.user)
+            response = self.client.post(f"/api/fixed-bills/{bill.id}/pay/", {}, content_type="application/json")
+
+        self.assertEqual(response.json()["date"], "2026-11-06")
