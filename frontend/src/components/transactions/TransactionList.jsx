@@ -100,6 +100,7 @@ function TransactionList({ transactions, onEdit, onDelete, highlightId }) {
 
                                         <div className="transaction-meta">
                                             <span>{transaction.category_name || "Sem categoria"}</span>
+                                            {transaction.fixed_bill && <span>Conta fixa</span>}
                                         </div>
                                     </div>
 

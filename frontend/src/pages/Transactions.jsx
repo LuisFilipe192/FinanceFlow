@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Plus, Search } from "lucide-react";
 
 import EmptyState from "../components/EmptyState";
+import FixedBillsCard from "../components/fixedBills/FixedBillsCard";
 import PageActions from "../components/PageActions";
 import PeriodPicker from "../components/PeriodPicker";
 import { Skeleton, SkeletonRows } from "../components/Skeleton";
@@ -101,6 +102,7 @@ function Transactions() {
     // Exclusões aguardando os 5 segundos do "Desfazer": id -> { transaction, timer }.
     const pendingDeletes = useRef(new Map());
     const pendingHighlight = useRef(null);
+    const [billsRefreshKey, setBillsRefreshKey] = useState(0);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -266,6 +268,7 @@ function Transactions() {
 
         const updatedSummary = await refreshFinancialSummary();
         closeForm();
+        setBillsRefreshKey((current) => current + 1);
 
         const typeLabel = savedTransaction.type === "INCOME" ? "Receita" : "Despesa";
         const savedText = isEditing
@@ -317,6 +320,7 @@ function Transactions() {
         try {
             await deleteTransaction(transaction.id);
             await refreshFinancialSummary();
+            setBillsRefreshKey((current) => current + 1);
         } catch (error) {
             console.error(error);
             restoreTransaction(transaction);
@@ -496,6 +500,12 @@ function Transactions() {
                         </span>
                     </div>
                 </div>
+
+                <FixedBillsCard
+                    period={period}
+                    refreshKey={billsRefreshKey}
+                    onPaid={(payment) => handleTransactionSaved(payment, false)}
+                />
 
                 <div className="transactions-toolbar">
                     <div className="search-box">
