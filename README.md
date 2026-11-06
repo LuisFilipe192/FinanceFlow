@@ -79,6 +79,7 @@ cd frontend
 npm run lint
 npm test                             # testes unitários (Vitest)
 npm run build
+npm run check:bundle                 # sem source maps nem segredos
 npx playwright install chromium      # só na primeira vez
 npm run test:e2e                     # ponta a ponta (Playwright)
 ```
@@ -89,6 +90,7 @@ São cerca de 160 testes, e o CI roda todos a cada push na `main`. O E2E liga o 
 
 - **Sessão do Django em vez de JWT.** O cookie `HttpOnly` não fica acessível ao JavaScript, e nada sensível é guardado em `localStorage`. As requisições que alteram dados usam proteção CSRF.
 - **A segurança fica no backend.** Toda consulta filtra pelo usuário logado, e o registro de outra pessoa responde 404, sem confirmar que ele existe.
+- **Nada sensível no navegador.** O cookie de sessão é `HttpOnly`, e `localStorage`, `sessionStorage` e IndexedDB ficam vazios, o que um teste E2E comprova. O build de produção sai sem source maps, e o CI reprova o bundle se aparecer um segredo ou uma variável `VITE_` com nome de chave.
 - **Rate limit por falhas.** O login conta só as tentativas erradas, por usuário e por IP, e o limite é conferido antes de testar a senha. Assim, quem está bloqueado não descobre se acertou.
 - **E-mail único sem modelo de usuário customizado.** Um índice único em `LOWER(email)`, criado por migration, garante a regra no banco mesmo com cadastros simultâneos.
 - **Pagamento de conta fixa é uma transação comum.** "Paga no mês" significa que existe uma transação vinculada naquele mês. Não há estado duplicado, e o pagamento entra sozinho no Dashboard e no orçamento.

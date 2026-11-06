@@ -1,3 +1,7 @@
+import json
+import os
+import subprocess
+import sys
 from decimal import Decimal
 from datetime import date, datetime, timezone as dt_timezone
 from unittest.mock import patch
@@ -1365,3 +1369,54 @@ class BrazilTimezoneTests(TestCase):
             response = self.client.post(f"/api/fixed-bills/{bill.id}/pay/", {}, content_type="application/json")
 
         self.assertEqual(response.json()["date"], "2026-11-06")
+
+
+class SecurityConfigurationTests(TestCase):
+    def read_settings(self, **env):
+        code = (
+            "import json, django; django.setup(); from django.conf import settings as s; "
+            "print(json.dumps({"
+            "'debug': s.DEBUG, 'ssl': s.SECURE_SSL_REDIRECT, 'hsts': s.SECURE_HSTS_SECONDS, "
+            "'proxy': s.SECURE_PROXY_SSL_HEADER, 'session_secure': s.SESSION_COOKIE_SECURE, "
+            "'csrf_secure': s.CSRF_COOKIE_SECURE, 'http_only': s.SESSION_COOKIE_HTTPONLY}))"
+        )
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            env={**os.environ, "DJANGO_SETTINGS_MODULE": "config.settings", **env},
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return json.loads(result.stdout.strip().splitlines()[-1])
+
+    def test_production_forces_https_and_secure_cookies(self):
+        config = self.read_settings(DJANGO_DEBUG="False", DJANGO_ALLOWED_HOSTS="meusite.com")
+
+        self.assertFalse(config["debug"])
+        self.assertTrue(config["ssl"])
+        self.assertEqual(config["hsts"], 3600)
+        self.assertTrue(config["session_secure"])
+        self.assertTrue(config["csrf_secure"])
+        self.assertTrue(config["http_only"])
+        self.assertIsNone(config["proxy"])
+
+    def test_proxy_header_is_only_trusted_when_enabled(self):
+        config = self.read_settings(DJANGO_DEBUG="False", DJANGO_BEHIND_PROXY="True")
+
+        self.assertEqual(config["proxy"], ["HTTP_X_FORWARDED_PROTO", "https"])
+
+    def test_login_cookie_is_http_only_and_same_site(self):
+        cache.clear()
+        User.objects.create_user(username="ana", password="senha-forte-123")
+
+        response = self.client.post(
+            "/api/auth/login/",
+            {"username": "ana", "password": "senha-forte-123"},
+            content_type="application/json",
+        )
+
+        cookie = response.cookies["sessionid"]
+        self.assertTrue(cookie["httponly"])
+        self.assertEqual(cookie["samesite"], "Lax")
+        self.assertNotIn("password", response.content.decode())
+        cache.clear()
