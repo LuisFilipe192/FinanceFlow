@@ -52,6 +52,8 @@ Você precisa de Python 3.14 e Node.js 24 (as versões usadas no CI).
 python -m venv .venv
 .venv\Scripts\activate          # Linux ou macOS: source .venv/bin/activate
 pip install -r requirements.txt
+python -c "import secrets; open('.env', 'w').write('DJANGO_SECRET_KEY=' + secrets.token_urlsafe(64) + '
+')"
 python manage.py migrate
 python manage.py runserver 8000
 ```
@@ -63,6 +65,8 @@ cd frontend
 npm install
 npm run dev
 ```
+
+O comando `python -c` cria o arquivo `.env` com uma chave aleatória só sua. Ele fica fora do git, e o Django não inicia sem ele (veja `.env.example`).
 
 Abra o app por `localhost`, não por `127.0.0.1`: os cookies de sessão dependem disso. Depois é só criar uma conta na tela de cadastro.
 
