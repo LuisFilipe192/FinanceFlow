@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { runDjangoShell } from "./support/django.js";
 import { login, money, uniqueLetters } from "./support/helpers.js";
-import { E2E_USER } from "./support/users.js";
+import { E2E_PREFIX, E2E_USER } from "./support/users.js";
 
 function createBill(description, amount, dueDay = "None") {
     runDjangoShell(
@@ -45,6 +45,27 @@ test.describe("Contas fixas", () => {
         await row.getByRole("button", { name: `Excluir ${description}` }).click();
 
         await expect(bill).toContainText("Sem vencimento", { timeout: 9_000 });
+    });
+
+    test("o resumo do Dashboard avisa quanto falta pagar", async ({ page }) => {
+        const user = { username: `${E2E_PREFIX}contas_${uniqueLetters()}`, password: "Contas!E2E-2026" };
+
+        runDjangoShell(
+            "from django.contrib.auth import get_user_model; " +
+            "from django.utils import timezone; " +
+            "from transactions.models import Category, FixedBill, Transaction; " +
+            `user = get_user_model().objects.create_user(username="${user.username}", password="${user.password}"); ` +
+            "category = Category.objects.create(user=user, name=\"Transferências\"); " +
+            "Transaction.objects.create(user=user, category=category, description=\"Salário\", " +
+            "amount=\"1000.00\", type=\"INCOME\", date=timezone.localdate()); " +
+            "FixedBill.objects.create(user=user, category=category, description=\"Seguro\", amount=\"155.90\")"
+        );
+
+        await login(page, user);
+
+        await expect(page.locator(".insight-banner")).toContainText(
+            /Faltam R\$\s155,90 em contas fixas este mês\./
+        );
     });
 
     test("cadastra, edita e exclui uma conta sem apagar os pagamentos", async ({ page }) => {

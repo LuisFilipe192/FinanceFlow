@@ -14,6 +14,7 @@ import MonthlyChart from "../components/MonthlyChart";
 import CategoryChart from "../components/CategoryChart";
 
 import { getDashboard } from "../services/dashboard";
+import { getFixedBills } from "../services/fixedBills";
 import { getCategories } from "../services/transactions";
 import { getCategoryColorMap } from "../utils/categoryColors";
 import { sumExpensesUntil } from "../utils/insights";
@@ -35,6 +36,7 @@ function Dashboard() {
     const [error, setError] = useState(null);
     const [categoryColors, setCategoryColors] = useState(() => new Map());
     const [budgets, setBudgets] = useState(() => new Map());
+    const [billsSummary, setBillsSummary] = useState(null);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -62,13 +64,14 @@ function Dashboard() {
                 // O mês anterior alimenta a comparação do resumo ("gastou 18% menos").
                 const previous = new Date(year, month - 2, 1);
 
-                const [data, previousData] = await Promise.all([
+                const [data, previousData, billsData] = await Promise.all([
                     getDashboard({ month, year, signal: controller.signal }),
                     getDashboard({
                         month: previous.getMonth() + 1,
                         year: previous.getFullYear(),
                         signal: controller.signal,
                     }).catch(() => null),
+                    getFixedBills({ month, year, signal: controller.signal }).catch(() => null),
                 ]);
 
                 const now = new Date();
@@ -76,6 +79,7 @@ function Dashboard() {
                 const untilDay = isCurrentMonth ? now.getDate() : null;
 
                 setSummary(data.summary);
+                setBillsSummary(isCurrentMonth ? billsData?.summary ?? null : null);
                 setPreviousComparison(
                     previousData
                         ? { expenses: sumExpensesUntil(previousData.daily_movement, untilDay), untilDay }
@@ -131,6 +135,7 @@ function Dashboard() {
                     summary={error ? null : summary}
                     previousComparison={previousComparison}
                     budgets={budgets}
+                    billsSummary={billsSummary}
                     expensesByCategory={expensesByCategory}
                     month={loadedPeriod.month}
                     year={loadedPeriod.year}

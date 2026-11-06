@@ -108,6 +108,39 @@ describe("buildInsight", () => {
         expect(sentences.at(-1)).toBe("Mercado já usou 92% do orçamento.");
     });
 
+    it("avisa sobre contas fixas atrasadas", () => {
+        const { sentences, tone } = buildInsight({
+            ...base,
+            previousComparison: null,
+            billsSummary: { overdue_count: 2, pending_count: 3, pending_total: "300.00" },
+        });
+
+        expect(tone).toBe("warning");
+        expect(sentences.at(-1)).toBe("2 contas fixas estão atrasadas.");
+    });
+
+    it("diz quanto falta pagar em contas fixas", () => {
+        const { sentences } = buildInsight({
+            ...base,
+            previousComparison: null,
+            billsSummary: { overdue_count: 0, pending_count: 2, pending_total: "155.90" },
+        });
+
+        expect(sentences.at(-1).replace(/\s/g, " ")).toBe("Faltam R$ 155,90 em contas fixas este mês.");
+    });
+
+    it("orçamento estourado vem antes das contas fixas", () => {
+        const { sentences } = buildInsight({
+            ...base,
+            previousComparison: null,
+            expensesByCategory: [{ category_id: 1, category: "Mercado", total: "412.00" }],
+            budgets: new Map([[1, "400.00"]]),
+            billsSummary: { overdue_count: 1, pending_count: 1, pending_total: "50.00" },
+        });
+
+        expect(sentences.at(-1)).toContain("passou do orçamento");
+    });
+
     it("cita a categoria com maior gasto", () => {
         const { sentences } = buildInsight({
             ...base,

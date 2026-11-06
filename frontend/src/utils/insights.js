@@ -1,5 +1,5 @@
 import { getBudgetStatus } from "./budget";
-import { formatCurrency } from "./format";
+import { formatCurrency, pluralize } from "./format";
 
 export const MONTH_NAMES = [
     "janeiro", "fevereiro", "março", "abril",
@@ -35,7 +35,7 @@ export function findBudgetAlert(expensesByCategory, budgets) {
     return alerts[0] ?? null;
 }
 
-export function buildInsight({ summary, previousComparison, expensesByCategory, budgets = new Map(), month, year }) {
+export function buildInsight({ summary, previousComparison, expensesByCategory, budgets = new Map(), billsSummary = null, month, year }) {
     const monthName = MONTH_NAMES[month - 1];
     const previousMonthName = MONTH_NAMES[(month + 10) % 12];
 
@@ -82,18 +82,33 @@ export function buildInsight({ summary, previousComparison, expensesByCategory, 
     }
 
     const budgetAlert = findBudgetAlert(expensesByCategory, budgets);
+    const overdueBills = billsSummary?.overdue_count ?? 0;
+    const pendingBills = billsSummary?.pending_count ?? 0;
+
+    if (budgetAlert?.status.level === "over") {
+        tone = "warning";
+        sentences.push(
+            `${budgetAlert.name} passou do orçamento em ${formatCurrency(-budgetAlert.status.remaining)}.`
+        );
+        return { tone, sentences };
+    }
+
+    if (overdueBills > 0) {
+        tone = "warning";
+        sentences.push(
+            `${pluralize(overdueBills, "conta fixa está atrasada", "contas fixas estão atrasadas")}.`
+        );
+        return { tone, sentences };
+    }
 
     if (budgetAlert) {
-        const { name, status } = budgetAlert;
+        if (tone === "positive") tone = "neutral";
+        sentences.push(`${budgetAlert.name} já usou ${Math.floor(budgetAlert.status.ratio * 100)}% do orçamento.`);
+        return { tone, sentences };
+    }
 
-        if (status.level === "over") {
-            tone = "warning";
-            sentences.push(`${name} passou do orçamento em ${formatCurrency(-status.remaining)}.`);
-        } else {
-            if (tone === "positive") tone = "neutral";
-            sentences.push(`${name} já usou ${Math.floor(status.ratio * 100)}% do orçamento.`);
-        }
-
+    if (pendingBills > 0) {
+        sentences.push(`Faltam ${formatCurrency(billsSummary.pending_total)} em contas fixas este mês.`);
         return { tone, sentences };
     }
 

@@ -9,7 +9,7 @@ const ICONS = {
     neutral: Sparkles,
 };
 
-function InsightBanner({ loading, summary, previousComparison, expensesByCategory, budgets, month, year }) {
+function InsightBanner({ loading, summary, previousComparison, expensesByCategory, budgets, billsSummary, month, year }) {
     if (loading && !summary) {
         return (
             <div className="insight-banner">
@@ -25,6 +25,7 @@ function InsightBanner({ loading, summary, previousComparison, expensesByCategor
         summary,
         previousComparison,
         budgets,
+        billsSummary,
         expensesByCategory,
         month,
         year,
