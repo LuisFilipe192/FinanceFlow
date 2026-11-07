@@ -1,5 +1,12 @@
 import { apiRequest } from "./api";
 
+export function getSidebarSummary({ signal } = {}) {
+    return apiRequest("/sidebar-summary/", {
+        signal,
+        fallbackError: "Erro ao buscar o resumo do mês.",
+    });
+}
+
 export function getDashboard({ month, year, signal } = {}) {
     const params = new URLSearchParams();
 

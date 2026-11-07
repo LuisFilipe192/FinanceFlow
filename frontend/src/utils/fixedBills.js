@@ -34,6 +34,16 @@ export function getBillUrgency(bill, today = new Date()) {
     return "calm";
 }
 
+export function getNextBill(bills) {
+    const unpaid = bills.filter((bill) => bill.status !== "paid");
+
+    return unpaid.sort((a, b) => {
+        if (!a.due_date || !b.due_date) return Boolean(b.due_date) - Boolean(a.due_date);
+
+        return a.due_date.localeCompare(b.due_date);
+    })[0] ?? null;
+}
+
 export function getDefaultPaymentDate(bill, period, today = new Date()) {
     const isCurrentMonth =
         period.month === today.getMonth() + 1 && period.year === today.getFullYear();

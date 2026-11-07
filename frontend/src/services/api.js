@@ -11,6 +11,10 @@ export const SESSION_CHECK_EVENT = "financeflow:session-check";
 // Disparado pelo AuthProvider logo antes do logout (veja logout()).
 export const BEFORE_LOGOUT_EVENT = "financeflow:before-logout";
 
+export const DATA_CHANGED_EVENT = "financeflow:data-changed";
+
+const FINANCIAL_PATH = /^\/(transactions|fixed-bills)\b/;
+
 export function getCsrfToken() {
     const cookie = document.cookie
         .split("; ")
@@ -100,6 +104,10 @@ export async function apiRequest(path, {
         error.status = response.status;
         error.data = data;
         throw error;
+    }
+
+    if (method !== "GET" && FINANCIAL_PATH.test(path)) {
+        window.dispatchEvent(new Event(DATA_CHANGED_EVENT));
     }
 
     return data;

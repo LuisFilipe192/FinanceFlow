@@ -9,6 +9,7 @@ import {
 import { Link, NavLink } from "react-router-dom";
 
 import Brand from "./Brand";
+import SidebarSummary from "./SidebarSummary";
 
 function Sidebar() {
     return (
@@ -61,6 +62,8 @@ function Sidebar() {
                     <span>Configurações</span>
                 </NavLink>
             </nav>
+
+            <SidebarSummary />
         </aside>
     );
 }

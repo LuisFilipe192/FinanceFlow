@@ -1,21 +1,14 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, CircleCheck, CircleDashed, Clock, Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 
 import BillFormModal from "./BillFormModal";
+import BillUrgencyIcon from "./BillUrgencyIcon";
 import PayBillModal from "./PayBillModal";
 import ConfirmDialog from "../ConfirmDialog";
 import { useToast } from "../../context/ToastContext";
 import { deleteFixedBill, getFixedBills } from "../../services/fixedBills";
 import { getBillStatusLabel, getBillUrgency } from "../../utils/fixedBills";
 import { formatCurrency } from "../../utils/format";
-
-const URGENCY_ICONS = {
-    paid: CircleCheck,
-    calm: CircleDashed,
-    soon: CircleDashed,
-    urgent: Clock,
-    overdue: AlertTriangle,
-};
 
 function FixedBillsCard({ period, categories, refreshKey, onCategoryCreated, onPaid }) {
     const showToast = useToast();
@@ -107,11 +100,10 @@ function FixedBillsCard({ period, categories, refreshKey, onCategoryCreated, onP
                     <ul className="fixed-bills-list">
                         {data.bills.map((bill) => {
                             const urgency = getBillUrgency(bill);
-                            const Icon = URGENCY_ICONS[urgency];
 
                             return (
                                 <li className={`fixed-bill ${urgency}`} key={bill.id}>
-                                    <Icon size={18} className="fixed-bill-icon" />
+                                    <BillUrgencyIcon urgency={urgency} size={18} className="fixed-bill-icon" />
 
                                     <div className="fixed-bill-info">
                                         <strong>{bill.description}</strong>

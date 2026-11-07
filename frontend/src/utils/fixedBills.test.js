@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getBillStatusLabel, getBillUrgency, getDefaultPaymentDate } from "./fixedBills";
+import { getBillStatusLabel, getBillUrgency, getDefaultPaymentDate, getNextBill } from "./fixedBills";
 
 describe("getBillStatusLabel", () => {
     it("descreve cada situação da conta", () => {
@@ -35,6 +35,27 @@ describe("getBillUrgency", () => {
     it("mantém contas pagas e vencidas no próprio estado", () => {
         expect(getBillUrgency({ status: "paid", due_date: "2026-11-07" }, today)).toBe("paid");
         expect(getBillUrgency({ status: "overdue", due_date: null }, today)).toBe("overdue");
+    });
+});
+
+describe("getNextBill", () => {
+    it("escolhe a conta não paga com o vencimento mais próximo", () => {
+        const bills = [
+            { id: 1, status: "pending", due_date: null },
+            { id: 2, status: "pending", due_date: "2026-11-20" },
+            { id: 3, status: "paid", due_date: "2026-11-01" },
+            { id: 4, status: "overdue", due_date: "2026-11-03" },
+        ];
+
+        expect(getNextBill(bills).id).toBe(4);
+    });
+
+    it("usa conta sem vencimento só quando não há outra", () => {
+        expect(getNextBill([{ id: 1, status: "pending", due_date: null }]).id).toBe(1);
+    });
+
+    it("devolve null quando tudo está pago", () => {
+        expect(getNextBill([{ id: 1, status: "paid", due_date: null }])).toBeNull();
     });
 });
 
