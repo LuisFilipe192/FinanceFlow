@@ -79,6 +79,7 @@ function CategoryPicker({ id, value, categories, placeholder, className, onChang
             <label htmlFor={`${id}-new`}>Nome da nova categoria</label>
 
             <input
+                autoComplete="off"
                 id={`${id}-new`}
                 type="text"
                 placeholder="Digite o nome da categoria"

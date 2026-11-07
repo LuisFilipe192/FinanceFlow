@@ -57,7 +57,7 @@ function PayBillModal({ bill, period, onPaid, onClose }) {
             onClose={onClose}
             closeDisabled={saving}
         >
-            <form onSubmit={handleSubmit} noValidate>
+            <form onSubmit={handleSubmit} autoComplete="off" noValidate>
                 <label htmlFor="bill-payment-amount">Valor pago</label>
                 <CurrencyInput
                     id="bill-payment-amount"
@@ -71,6 +71,7 @@ function PayBillModal({ bill, period, onPaid, onClose }) {
 
                 <label htmlFor="bill-payment-date">Data do pagamento</label>
                 <DatePicker
+                    autoComplete="off"
                     id="bill-payment-date"
                     selected={date ? parseISODate(date) : null}
                     onChange={(selected) => {

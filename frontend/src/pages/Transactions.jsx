@@ -563,6 +563,7 @@ function Transactions() {
                     <div className="search-box">
                         <Search size={18} />
                         <input
+                            autoComplete="off"
                             type="text"
                             placeholder="Buscar transação..."
                             value={search}

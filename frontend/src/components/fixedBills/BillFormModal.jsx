@@ -95,9 +95,10 @@ function BillFormModal({ bill, categories, onCategoryCreated, onSaved, onClose }
             onClose={onClose}
             closeDisabled={saving}
         >
-            <form onSubmit={handleSubmit} noValidate>
+            <form onSubmit={handleSubmit} autoComplete="off" noValidate>
                 <label htmlFor="bill-description">Nome da conta</label>
                 <input
+                    autoComplete="off"
                     id="bill-description"
                     type="text"
                     maxLength={200}
@@ -142,6 +143,7 @@ function BillFormModal({ bill, categories, onCategoryCreated, onSaved, onClose }
 
                 <label htmlFor="bill-due-day">Dia do vencimento (opcional)</label>
                 <input
+                    autoComplete="off"
                     id="bill-due-day"
                     type="text"
                     inputMode="numeric"

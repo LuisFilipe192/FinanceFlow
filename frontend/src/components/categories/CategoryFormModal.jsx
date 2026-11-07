@@ -125,10 +125,11 @@ function CategoryFormModal({ category, categories, onSaved, onClose }) {
             onClose={onClose}
             closeDisabled={saving}
         >
-            <form onSubmit={handleSubmit} noValidate>
+            <form onSubmit={handleSubmit} autoComplete="off" noValidate>
                 <label htmlFor="category-name">Nome da categoria</label>
 
                 <input
+                    autoComplete="off"
                     id="category-name"
                     ref={inputRef}
                     type="text"

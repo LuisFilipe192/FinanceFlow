@@ -53,6 +53,23 @@ test.describe("Transações", () => {
         await expect(row).toContainText("Parcela 1 de 3");
     });
 
+    test("campos financeiros não mostram o histórico do navegador", async ({ page }) => {
+        await expect(page.getByPlaceholder(/Buscar/)).toHaveAttribute("autocomplete", "off");
+
+        await page.getByRole("button", { name: /Nova transação/ }).click();
+
+        const dialog = page.getByRole("dialog", { name: "Nova transação" });
+        await dialog.getByRole("button", { name: "Despesa" }).click();
+        await dialog.getByRole("button", { name: "Parcelada" }).click();
+
+        const inputs = dialog.locator("input");
+        await expect(inputs).toHaveCount(4);
+
+        for (const input of await inputs.all()) {
+            await expect(input).toHaveAttribute("autocomplete", "off");
+        }
+    });
+
     test("tecla N abre o formulário, que formata o valor e descreve a ação", async ({ page }) => {
         const description = `Mercado e2e ${Date.now()}`;
 

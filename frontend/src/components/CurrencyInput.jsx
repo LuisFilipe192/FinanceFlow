@@ -8,6 +8,7 @@ const MAX_AMOUNT_DIGITS = 10;
 function CurrencyInput({ value, onChange, className = "", ...props }) {
     return (
         <input
+            autoComplete="off"
             type="text"
             inputMode="numeric"
             placeholder="R$ 0,00"

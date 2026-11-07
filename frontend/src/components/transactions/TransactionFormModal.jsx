@@ -187,7 +187,7 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
             onClose={onClose}
         >
             {/* data-type muda a cor de destaque do formulário inteiro (CSS). */}
-            <form onSubmit={handleSubmit} data-type={formData.type} className="transaction-form" noValidate>
+            <form onSubmit={handleSubmit} data-type={formData.type} className="transaction-form" autoComplete="off" noValidate>
                 {!isEditingInstallment && (
                     <div className="transaction-type-selector" role="group" aria-label="Tipo da transação">
                         <span className="type-indicator" aria-hidden="true" />
@@ -239,6 +239,7 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
 
                 <label htmlFor="transaction-description">Descrição</label>
                 <input
+                    autoComplete="off"
                     id="transaction-description"
                     type="text"
                     placeholder={
@@ -287,6 +288,7 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
                     <>
                         <label htmlFor="transaction-installments">Número de parcelas</label>
                         <input
+                            autoComplete="off"
                             id="transaction-installments"
                             type="text"
                             inputMode="numeric"
@@ -324,6 +326,7 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
 
                 <label htmlFor="transaction-date">{isSplit ? "Data da primeira parcela" : "Data"}</label>
                 <DatePicker
+                    autoComplete="off"
                     id="transaction-date"
                     selected={formData.date ? parseISODate(formData.date) : null}
                     onChange={(date) => {
