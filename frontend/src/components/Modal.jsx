@@ -119,7 +119,7 @@ function Modal({ title, description, onClose, closeDisabled = false, children })
                         onClick={onClose}
                         disabled={closeDisabled}
                     >
-                        <X size={20} />
+                        <X size={18} />
                     </button>
                 </div>
 

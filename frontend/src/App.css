@@ -808,14 +808,18 @@
 }
 
 .modal-close {
-    width: 36px;
-    height: 36px;
-    border: 1px solid var(--border);
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    margin: -2px -7px 0 12px;
+    border: 0;
     border-radius: var(--radius-md);
-    background: var(--bg-card);
+    background: transparent;
     color: var(--text-secondary);
-    font-size: var(--text-xl);
     cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease;
 }
 
 @media (hover: hover) and (pointer: fine) {
