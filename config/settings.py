@@ -143,17 +143,34 @@ STATIC_URL = 'static/'
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
-MAILERS = {
-    'default': {
-        'BACKEND': (
-            'transactions.dev_email.ReadableConsoleEmailBackend'
-            if DEBUG
-            else 'django.core.mail.backends.smtp.EmailBackend'
-        ),
-    },
-}
+smtp_host = os.environ.get("DJANGO_EMAIL_HOST", "").strip()
+smtp_user = os.environ.get("DJANGO_EMAIL_USER", "").strip()
+smtp_password = os.environ.get("DJANGO_EMAIL_PASSWORD", "").replace(" ", "")
 
-DEFAULT_FROM_EMAIL = os.environ.get("DJANGO_FROM_EMAIL", "FinanceFlow <noreply@financeflow.local>")
+if DEBUG and not smtp_password:
+    MAILERS = {
+        'default': {
+            'BACKEND': 'transactions.dev_email.ReadableConsoleEmailBackend',
+        },
+    }
+else:
+    MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
+            'OPTIONS': {
+                'host': smtp_host or None,
+                'port': int(os.environ.get("DJANGO_EMAIL_PORT", "587")),
+                'username': smtp_user,
+                'password': smtp_password,
+                'use_tls': True,
+                'timeout': 10,
+            },
+        },
+    }
+
+DEFAULT_FROM_EMAIL = os.environ.get("DJANGO_FROM_EMAIL") or (
+    f"FinanceFlow <{smtp_user}>" if smtp_user else "FinanceFlow <noreply@financeflow.local>"
+)
 
 PASSWORD_RESET_TIMEOUT = 60 * 60
 

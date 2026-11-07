@@ -38,6 +38,7 @@ export default defineConfig({
         {
             command: `"${PYTHON}" manage.py runserver 8000 --noreload`,
             cwd: PROJECT_ROOT,
+            env: { DJANGO_EMAIL_PASSWORD: "" },
             url: "http://localhost:8000/api/auth/session/",
             reuseExistingServer: !process.env.CI,
             timeout: 60_000,

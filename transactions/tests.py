@@ -1429,6 +1429,53 @@ class SecurityConfigurationTests(TestCase):
 
         self.assertIn("smtp", result.stdout)
 
+    def read_mailer(self, **env):
+        code = (
+            "import json, django; django.setup(); from django.conf import settings as s; "
+            "from django.core.mail import mailers; m = mailers['default']; "
+            "print(json.dumps({'backend': s.MAILERS['default']['BACKEND'], 'from': s.DEFAULT_FROM_EMAIL, "
+            "'host': getattr(m, 'host', None), 'port': getattr(m, 'port', None), "
+            "'username': getattr(m, 'username', None), 'password': getattr(m, 'password', None), "
+            "'tls': getattr(m, 'use_tls', None)}))"
+        )
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            env={
+                **os.environ,
+                "DJANGO_SETTINGS_MODULE": "config.settings",
+                "DJANGO_DEBUG": "True",
+                "DJANGO_EMAIL_HOST": "",
+                "DJANGO_EMAIL_USER": "",
+                "DJANGO_EMAIL_PASSWORD": "",
+                "DJANGO_FROM_EMAIL": "",
+                **env,
+            },
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return json.loads(result.stdout.strip().splitlines()[-1])
+
+    def test_development_without_smtp_password_stays_on_console(self):
+        config = self.read_mailer(DJANGO_EMAIL_HOST="smtp.gmail.com", DJANGO_EMAIL_USER="ana@gmail.com")
+
+        self.assertIn("ReadableConsoleEmailBackend", config["backend"])
+
+    def test_smtp_password_turns_on_real_delivery(self):
+        config = self.read_mailer(
+            DJANGO_EMAIL_HOST="smtp.gmail.com",
+            DJANGO_EMAIL_USER="ana@gmail.com",
+            DJANGO_EMAIL_PASSWORD="abcd efgh ijkl mnop",
+        )
+
+        self.assertIn("smtp", config["backend"])
+        self.assertEqual(config["host"], "smtp.gmail.com")
+        self.assertEqual(config["port"], 587)
+        self.assertEqual(config["username"], "ana@gmail.com")
+        self.assertEqual(config["password"], "abcdefghijklmnop")
+        self.assertTrue(config["tls"])
+        self.assertEqual(config["from"], "FinanceFlow <ana@gmail.com>")
+
     def test_proxy_header_is_only_trusted_when_enabled(self):
         config = self.read_settings(DJANGO_DEBUG="False", DJANGO_BEHIND_PROXY="True")
 
