@@ -5,10 +5,12 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from transactions.models import FixedBill, Transaction
+from transactions.services.dashboard import get_financial_summary
 from transactions.services.fixed_bills import get_fixed_bills_for_period
 
 from .serializers import (
     DashboardPeriodSerializer,
+    FinancialSummarySerializer,
     FixedBillPaymentSerializer,
     FixedBillSerializer,
     TransactionSerializer,
@@ -42,6 +44,20 @@ def _bill_data(entry, request):
 
 def _get_bill(request, pk):
     return FixedBill.objects.filter(id=pk, user=request.user).first()
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def sidebar_summary_api(request):
+    today = timezone.localdate()
+    summary = get_financial_summary(request.user, today.month, today.year)
+    entries, _ = get_fixed_bills_for_period(request.user, today.month, today.year, today)
+
+    return Response({
+        "period": {"month": today.month, "year": today.year},
+        "summary": FinancialSummarySerializer(summary).data,
+        "bills": [_bill_data(entry, request) for entry in entries],
+    })
 
 
 @api_view(["GET", "POST"])

@@ -41,6 +41,11 @@ urlpatterns = [
         name="transaction-detail-api"
     ),
     path(
+        "sidebar-summary/",
+        fixed_bills_views.sidebar_summary_api,
+        name="sidebar-summary-api"
+    ),
+    path(
         "fixed-bills/",
         fixed_bills_views.fixed_bills_api,
         name="fixed-bills-api"

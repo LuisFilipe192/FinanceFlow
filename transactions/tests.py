@@ -7,6 +7,7 @@ from datetime import date, datetime, timezone as dt_timezone
 from unittest.mock import patch
 
 from django.test import Client, TestCase, override_settings
+from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import UserManager
 from django.core import mail
@@ -1512,6 +1513,36 @@ class InstallmentTests(TestCase):
 
         self.assertEqual(response.status_code, 404)
         self.assertEqual(Transaction.objects.filter(user=self.user).count(), 3)
+
+
+class SidebarSummaryTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="ana", password="senha-forte-123")
+        self.other = User.objects.create_user(username="bruno", password="senha-forte-123")
+        self.category = Category.objects.create(user=self.user, name="Casa")
+        self.other_category = Category.objects.create(user=self.other, name="Casa")
+
+    def test_returns_only_the_current_month_of_the_logged_user(self):
+        today = timezone.localdate()
+        Transaction.objects.create(
+            user=self.user, description="Salário", amount="1000.00", type="INCOME", date=today
+        )
+        Transaction.objects.create(
+            user=self.other, description="De outra pessoa", amount="50.00", type="EXPENSE", date=today
+        )
+        FixedBill.objects.create(user=self.user, description="Internet", amount="80.00", category=self.category)
+        FixedBill.objects.create(user=self.other, description="Outra", amount="10.00", category=self.other_category)
+        self.client.force_login(self.user)
+
+        data = self.client.get("/api/sidebar-summary/").json()
+
+        self.assertEqual(data["period"], {"month": today.month, "year": today.year})
+        self.assertEqual(Decimal(data["summary"]["income"]), Decimal("1000.00"))
+        self.assertEqual(Decimal(data["summary"]["expenses"]), Decimal("0"))
+        self.assertEqual([bill["description"] for bill in data["bills"]], ["Internet"])
+
+    def test_requires_login(self):
+        self.assertIn(self.client.get("/api/sidebar-summary/").status_code, (401, 403))
 
 
 class BrazilTimezoneTests(TestCase):
