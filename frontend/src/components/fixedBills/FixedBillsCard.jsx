@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Check, Pencil, Plus, Trash2 } from "lucide-react";
 
 import BillFormModal from "./BillFormModal";
 import BillUrgencyIcon from "./BillUrgencyIcon";
@@ -114,7 +114,12 @@ function FixedBillsCard({ period, categories, refreshKey, onCategoryCreated, onP
                                         {formatCurrency(bill.payment ? bill.payment.amount : bill.amount)}
                                     </strong>
 
-                                    {bill.status !== "paid" && (
+                                    {bill.status === "paid" ? (
+                                        <span className="fixed-bill-paid">
+                                            <Check size={14} />
+                                            Pago
+                                        </span>
+                                    ) : (
                                         <button
                                             type="button"
                                             className="secondary-button fixed-bill-pay"

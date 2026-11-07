@@ -36,6 +36,7 @@ test.describe("Contas fixas", () => {
         await expect(dialog).toBeHidden();
         await expect(bill).toContainText(/Paga em \d{2}\/\d{2}/);
         await expect(bill).toContainText(money("R$ 120,00"));
+        await expect(bill.getByText("Pago", { exact: true })).toBeVisible();
         await expect(bill.getByRole("button", { name: `Pagar ${description}` })).toHaveCount(0);
 
         const row = page.locator(".transaction-row", { hasText: description });

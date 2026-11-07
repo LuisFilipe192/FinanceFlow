@@ -1958,8 +1958,26 @@
     color: var(--text-secondary);
 }
 
+.fixed-bill-paid {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-width: 82px;
+    min-height: 36px;
+    padding: 0 12px;
+    border: 1px solid color-mix(in srgb, var(--bill-tone) 45%, transparent);
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--bill-tone) 8%, transparent);
+    color: var(--bill-tone);
+    font-size: var(--text-sm);
+    font-weight: 600;
+}
+
 .fixed-bill-pay.secondary-button {
     flex-shrink: 0;
+    min-width: 82px;
     min-height: 36px;
     padding: 0 14px;
     border-color: color-mix(in srgb, var(--bill-tone) 45%, transparent);
@@ -2003,7 +2021,8 @@
         grid-area: amount;
     }
 
-    .fixed-bill-pay.secondary-button {
+    .fixed-bill-pay.secondary-button,
+    .fixed-bill-paid {
         grid-area: pay;
         justify-self: start;
     }
