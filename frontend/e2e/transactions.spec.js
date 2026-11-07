@@ -9,6 +9,50 @@ test.describe("Transações", () => {
         await expect(page.getByRole("heading", { name: "Histórico de transações" })).toBeVisible();
     });
 
+    test("compra parcelada aparece mês a mês e exclui esta e as próximas", async ({ page }) => {
+        const description = `Celular e2e ${Date.now()}`;
+        const row = page.locator(".transaction-row", { hasText: description });
+        const nextMonth = page.getByRole("button", { name: "Próximo mês" });
+        const previousMonth = page.getByRole("button", { name: "Mês anterior" });
+
+        await page.getByRole("button", { name: /Nova transação/ }).click();
+
+        const dialog = page.getByRole("dialog", { name: "Nova transação" });
+        await dialog.getByRole("button", { name: "Despesa" }).click();
+        await dialog.getByRole("button", { name: "Parcelada" }).click();
+        await dialog.getByLabel("Descrição").fill(description);
+        await dialog.getByLabel("Valor da parcela").fill("15000");
+
+        await dialog.getByRole("button", { name: "Adicionar parcelas" }).click();
+        await expect(dialog.getByText("Escolha de 2 a 60 parcelas.")).toBeVisible();
+
+        await dialog.getByLabel("Número de parcelas").fill("3");
+        await expect(dialog.getByText(money("Total de R$ 450,00"), { exact: false })).toBeVisible();
+        await dialog.getByRole("button", { name: money("Adicionar 3 parcelas de R$ 150,00") }).click();
+
+        await expect(page.getByText(money("3 parcelas de R$ 150,00 registradas."), { exact: false })).toBeVisible();
+        await expect(row).toContainText("Parcela 1 de 3");
+
+        await nextMonth.click();
+        await expect(row).toContainText("Parcela 2 de 3");
+
+        await row.hover();
+        await row.getByRole("button", { name: `Excluir ${description}` }).click();
+
+        const confirm = page.getByRole("dialog", { name: "Excluir parcela?" });
+        await confirm.getByRole("button", { name: "Esta e as próximas" }).click();
+        await expect(confirm).toBeHidden();
+        await expect(row).toBeHidden();
+
+        await nextMonth.click();
+        await expect(page.locator(".period-label")).toBeVisible();
+        await expect(row).toBeHidden();
+
+        await previousMonth.click();
+        await previousMonth.click();
+        await expect(row).toContainText("Parcela 1 de 3");
+    });
+
     test("tecla N abre o formulário, que formata o valor e descreve a ação", async ({ page }) => {
         const description = `Mercado e2e ${Date.now()}`;
 

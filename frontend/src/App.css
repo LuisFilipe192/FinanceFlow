@@ -3059,7 +3059,30 @@
     max-width: 360px;
 }
 
+/* PARCELAS */
 
+.form-label {
+    margin-top: 5px;
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    font-weight: 500;
+}
 
+.payment-mode {
+    background: var(--bg-secondary);
+}
 
+.payment-mode button {
+    flex: 1;
+}
 
+.installment-preview {
+    margin: 12px 0 0;
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    line-height: 1.5;
+}
+
+.installment-delete-actions {
+    flex-wrap: wrap;
+}

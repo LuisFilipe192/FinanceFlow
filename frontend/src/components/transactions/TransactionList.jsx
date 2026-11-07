@@ -101,6 +101,11 @@ function TransactionList({ transactions, onEdit, onDelete, highlightId }) {
                                         <div className="transaction-meta">
                                             <span>{transaction.category_name || "Sem categoria"}</span>
                                             {transaction.fixed_bill && <span>Conta fixa</span>}
+                                            {transaction.installment_total && (
+                                                <span>
+                                                    Parcela {transaction.installment_number} de {transaction.installment_total}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
 

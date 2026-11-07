@@ -13,6 +13,12 @@ import {
     updateTransaction,
 } from "../../services/transactions";
 import { DEFAULT_CATEGORY_NAME } from "../../utils/categories";
+import {
+    getLastInstallmentLabel,
+    isValidInstallmentCount,
+    MAX_INSTALLMENTS,
+    MIN_INSTALLMENTS,
+} from "../../utils/installments";
 
 function findTransferCategory(categories) {
     return categories.find((category) => category.name === DEFAULT_CATEGORY_NAME);
@@ -44,13 +50,21 @@ function getInitialForm(transaction, categories) {
 
 function TransactionFormModal({ transaction, categories, onCategoryCreated, onSaved, onClose }) {
     const isEditing = Boolean(transaction);
+    const isEditingInstallment = Boolean(transaction?.installment_total);
 
+    const [paidInInstallments, setPaidInInstallments] = useState(false);
+    const [installments, setInstallments] = useState("");
     const [formData, setFormData] = useState(
         () => getInitialForm(transaction, categories)
     );
     const [fieldErrors, setFieldErrors] = useState({});
     const [formError, setFormError] = useState("");
     const [saving, setSaving] = useState(false);
+
+    const canSplit = !isEditing && formData.type === "EXPENSE";
+    const isSplit = canSplit && paidInInstallments;
+    const installmentCount = Number(installments);
+    const hasValidCount = isSplit && isValidInstallmentCount(installmentCount);
 
     function validateForm() {
         const errors = {};
@@ -66,7 +80,13 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
         }
 
         if (centsToNumber(formData.amount) <= 0) {
-            errors.amount = "Qual foi o valor? Digite os números.";
+            errors.amount = isSplit
+                ? "Qual é o valor de cada parcela? Digite os números."
+                : "Qual foi o valor? Digite os números.";
+        }
+
+        if (isSplit && !hasValidCount) {
+            errors.installments = `Escolha de ${MIN_INSTALLMENTS} a ${MAX_INSTALLMENTS} parcelas.`;
         }
 
         if (!formData.date) {
@@ -111,6 +131,7 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
                 description,
                 amount: amount.toFixed(2),
                 category: categoryId,
+                ...(isSplit && { installments: installmentCount }),
             };
 
             const savedTransaction = isEditing
@@ -137,45 +158,84 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
         const typeLabel = formData.type === "INCOME" ? "receita" : "despesa";
         const amount = centsToNumber(formData.amount);
 
+        if (isSplit) {
+            return hasValidCount && amount > 0
+                ? `Adicionar ${installmentCount} parcelas de ${formatCurrency(amount)}`
+                : "Adicionar parcelas";
+        }
+
         return amount > 0
             ? `Adicionar ${typeLabel} de ${formatCurrency(amount)}`
             : `Adicionar ${typeLabel}`;
     }
 
 
+    function getModalDescription() {
+        if (isEditingInstallment) {
+            return `Parcela ${transaction.installment_number} de ${transaction.installment_total}. As outras parcelas não mudam.`;
+        }
+
+        return isEditing
+            ? "Atualize os dados desta transação."
+            : "Adicione uma receita ou despesa.";
+    }
+
     return (
         <Modal
             title={isEditing ? "Editar transação" : "Nova transação"}
-            description={
-                isEditing
-                    ? "Atualize os dados desta transação."
-                    : "Adicione uma receita ou despesa."
-            }
+            description={getModalDescription()}
             onClose={onClose}
         >
             {/* data-type muda a cor de destaque do formulário inteiro (CSS). */}
             <form onSubmit={handleSubmit} data-type={formData.type} className="transaction-form" noValidate>
-                <div className="transaction-type-selector" role="group" aria-label="Tipo da transação">
-                    <span className="type-indicator" aria-hidden="true" />
+                {!isEditingInstallment && (
+                    <div className="transaction-type-selector" role="group" aria-label="Tipo da transação">
+                        <span className="type-indicator" aria-hidden="true" />
 
-                    <button
-                        type="button"
-                        className={formData.type === "INCOME" ? "selected" : ""}
-                        aria-pressed={formData.type === "INCOME"}
-                        onClick={() => setFormData({ ...formData, type: "INCOME" })}
-                    >
-                        Receita
-                    </button>
+                        <button
+                            type="button"
+                            className={formData.type === "INCOME" ? "selected" : ""}
+                            aria-pressed={formData.type === "INCOME"}
+                            onClick={() => setFormData({ ...formData, type: "INCOME" })}
+                        >
+                            Receita
+                        </button>
 
-                    <button
-                        type="button"
-                        className={formData.type === "EXPENSE" ? "selected" : ""}
-                        aria-pressed={formData.type === "EXPENSE"}
-                        onClick={() => setFormData({ ...formData, type: "EXPENSE" })}
-                    >
-                        Despesa
-                    </button>
-                </div>
+                        <button
+                            type="button"
+                            className={formData.type === "EXPENSE" ? "selected" : ""}
+                            aria-pressed={formData.type === "EXPENSE"}
+                            onClick={() => setFormData({ ...formData, type: "EXPENSE" })}
+                        >
+                            Despesa
+                        </button>
+                    </div>
+                )}
+
+                {canSplit && (
+                    <>
+                        <span className="form-label" id="payment-mode-label">Pagamento</span>
+                        <div className="segmented-control payment-mode" role="group" aria-labelledby="payment-mode-label">
+                            <button
+                                type="button"
+                                className={!paidInInstallments ? "active" : ""}
+                                aria-pressed={!paidInInstallments}
+                                onClick={() => setPaidInInstallments(false)}
+                            >
+                                À vista
+                            </button>
+
+                            <button
+                                type="button"
+                                className={paidInInstallments ? "active" : ""}
+                                aria-pressed={paidInInstallments}
+                                onClick={() => setPaidInInstallments(true)}
+                            >
+                                Parcelada
+                            </button>
+                        </div>
+                    </>
+                )}
 
                 <label htmlFor="transaction-description">Descrição</label>
                 <input
@@ -204,7 +264,7 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
                     </span>
                 )}
 
-                <label htmlFor="transaction-amount">Valor</label>
+                <label htmlFor="transaction-amount">{isSplit ? "Valor da parcela" : "Valor"}</label>
                 <CurrencyInput
                     id="transaction-amount"
                     value={formData.amount}
@@ -223,6 +283,33 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
                     </span>
                 )}
 
+                {isSplit && (
+                    <>
+                        <label htmlFor="transaction-installments">Número de parcelas</label>
+                        <input
+                            id="transaction-installments"
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="Ex.: 12"
+                            maxLength={2}
+                            value={installments}
+                            className={fieldErrors.installments ? "input-error" : ""}
+                            aria-invalid={Boolean(fieldErrors.installments)}
+                            aria-describedby={fieldErrors.installments ? "installments-error" : undefined}
+                            onChange={(event) => {
+                                setInstallments(event.target.value.replace(/\D/g, ""));
+                                setFieldErrors({ ...fieldErrors, installments: "" });
+                            }}
+                        />
+
+                        {fieldErrors.installments && (
+                            <span id="installments-error" className="field-error">
+                                {fieldErrors.installments}
+                            </span>
+                        )}
+                    </>
+                )}
+
                 <label htmlFor="transaction-category">Categoria</label>
                 <CategoryPicker
                     id="transaction-category"
@@ -235,7 +322,7 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
                     onCategoryCreated={onCategoryCreated}
                 />
 
-                <label htmlFor="transaction-date">Data</label>
+                <label htmlFor="transaction-date">{isSplit ? "Data da primeira parcela" : "Data"}</label>
                 <DatePicker
                     id="transaction-date"
                     selected={formData.date ? parseISODate(formData.date) : null}
@@ -262,6 +349,13 @@ function TransactionFormModal({ transaction, categories, onCategoryCreated, onSa
                     <span id="date-error" className="field-error">
                         {fieldErrors.date}
                     </span>
+                )}
+
+                {hasValidCount && centsToNumber(formData.amount) > 0 && formData.date && (
+                    <p className="installment-preview">
+                        Total de {formatCurrency(centsToNumber(formData.amount) * installmentCount)}, com a
+                        última parcela em {getLastInstallmentLabel(formData.date, installmentCount)}.
+                    </p>
                 )}
 
                 {formError && (

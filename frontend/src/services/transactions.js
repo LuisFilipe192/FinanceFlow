@@ -30,8 +30,8 @@ export function updateTransaction(id, transaction) {
     });
 }
 
-export function deleteTransaction(id, { keepalive = false } = {}) {
-    return apiRequest(`/transactions/${id}/`, {
+export function deleteTransaction(id, { keepalive = false, scope } = {}) {
+    return apiRequest(`/transactions/${id}/${scope ? `?scope=${scope}` : ""}`, {
         method: "DELETE",
         keepalive,
         fallbackError: "Não foi possível excluir a transação.",

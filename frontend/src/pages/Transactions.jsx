@@ -3,6 +3,7 @@ import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, Plus, Search } from "lucid
 
 import EmptyState from "../components/EmptyState";
 import FixedBillsCard from "../components/fixedBills/FixedBillsCard";
+import InstallmentDeleteDialog from "../components/transactions/InstallmentDeleteDialog";
 import PageActions from "../components/PageActions";
 import PeriodPicker from "../components/PeriodPicker";
 import { Skeleton, SkeletonRows } from "../components/Skeleton";
@@ -10,6 +11,7 @@ import TransactionFormModal from "../components/transactions/TransactionFormModa
 import TransactionList from "../components/transactions/TransactionList";
 import { useToast } from "../context/ToastContext";
 import { formatCurrency, pluralize } from "../utils/format";
+import { hasFollowingInstallments } from "../utils/installments";
 import { MONTH_NAMES } from "../utils/insights";
 import { BEFORE_LOGOUT_EVENT } from "../services/api";
 import { getDashboard } from "../services/dashboard";
@@ -95,6 +97,9 @@ function Transactions() {
     // showForm abre o modal; editingTransaction diz se é edição (objeto) ou criação (null).
     const [showForm, setShowForm] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState(null);
+    const [installmentToDelete, setInstallmentToDelete] = useState(null);
+    const [deletingInstallments, setDeletingInstallments] = useState(false);
+    const [installmentDeleteError, setInstallmentDeleteError] = useState("");
 
     // Id da transação recém-salva: a linha dela pisca uma vez para você achá-la.
     const [highlightId, setHighlightId] = useState(null);
@@ -271,17 +276,21 @@ function Transactions() {
         closeForm();
         setBillsRefreshKey((current) => current + 1);
 
+        const isNewPurchase = !isEditing && Boolean(savedTransaction.installment_total);
         const typeLabel = savedTransaction.type === "INCOME" ? "Receita" : "Despesa";
+        const amountText = formatCurrency(savedTransaction.amount);
         const savedText = isEditing
             ? "Transação atualizada."
-            : `${typeLabel} de ${formatCurrency(savedTransaction.amount)} registrada.`;
+            : isNewPurchase
+                ? `${savedTransaction.installment_total} parcelas de ${amountText} registradas.`
+                : `${typeLabel} de ${amountText} registrada.`;
 
         if (!inPeriod) {
             const savedPeriod = getTransactionPeriod(savedTransaction);
 
             showToast({
                 type: "success",
-                message: `${savedText} Ela está em ${formatPeriod(savedPeriod)}.`,
+                message: `${savedText} ${isNewPurchase ? "A primeira" : "Ela"} está em ${formatPeriod(savedPeriod)}.`,
                 action: {
                     label: "Ver",
                     onClick: () => {
@@ -370,6 +379,42 @@ function Transactions() {
         });
     }
 
+    function requestDelete(transaction) {
+        if (hasFollowingInstallments(transaction)) {
+            setInstallmentDeleteError("");
+            setInstallmentToDelete(transaction);
+            return;
+        }
+
+        handleDeleteTransaction(transaction);
+    }
+
+    function deleteOnlyThisInstallment() {
+        handleDeleteTransaction(installmentToDelete);
+        setInstallmentToDelete(null);
+    }
+
+    async function deleteFollowingInstallments() {
+        const transaction = installmentToDelete;
+
+        try {
+            setDeletingInstallments(true);
+            setInstallmentDeleteError("");
+
+            await deleteTransaction(transaction.id, { scope: "following" });
+
+            setTransactions((previous) => previous.filter((item) => item.id !== transaction.id));
+            await refreshFinancialSummary();
+            setInstallmentToDelete(null);
+            showToast({ type: "success", message: `Parcelas de "${transaction.description}" excluídas.` });
+        } catch (error) {
+            console.error(error);
+            setInstallmentDeleteError(error.message);
+        } finally {
+            setDeletingInstallments(false);
+        }
+    }
+
     const filteredTransactions = transactions.filter((transaction) =>
         (typeFilter === "ALL" || transaction.type === typeFilter) &&
         transaction.description.toLowerCase().includes(search.toLowerCase())
@@ -435,7 +480,7 @@ function Transactions() {
             <TransactionList
                 transactions={filteredTransactions}
                 onEdit={openEditForm}
-                onDelete={handleDeleteTransaction}
+                onDelete={requestDelete}
                 highlightId={highlightId}
             />
         );
@@ -562,6 +607,17 @@ function Transactions() {
                     onCategoryCreated={handleCategoryCreated}
                     onSaved={handleTransactionSaved}
                     onClose={closeForm}
+                />
+            )}
+
+            {installmentToDelete && (
+                <InstallmentDeleteDialog
+                    transaction={installmentToDelete}
+                    loading={deletingInstallments}
+                    error={installmentDeleteError}
+                    onDeleteOne={deleteOnlyThisInstallment}
+                    onDeleteFollowing={deleteFollowingInstallments}
+                    onCancel={() => setInstallmentToDelete(null)}
                 />
             )}
         </>
