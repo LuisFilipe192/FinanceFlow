@@ -53,7 +53,6 @@ python -m venv .venv
 .venv\Scripts\activate          # Linux ou macOS: source .venv/bin/activate
 pip install -r requirements.txt
 python -c "import secrets; t = open('.env.example').read(); open('.env', 'w').write(t.replace('DJANGO_SECRET_KEY=', 'DJANGO_SECRET_KEY=' + secrets.token_urlsafe(64), 1))"
-')"
 python manage.py migrate
 python manage.py runserver 8000
 ```
@@ -67,6 +66,8 @@ npm run dev
 ```
 
 O comando `python -c` cria o arquivo `.env` a partir do `.env.example`, com uma chave aleatória só sua. Ele fica fora do git, e o Django não inicia sem ele.
+
+Sem configurar e-mail, o link de recuperação de senha aparece no terminal do backend. Para enviar de verdade, preencha `DJANGO_EMAIL_USER` e `DJANGO_EMAIL_PASSWORD` no `.env` e reinicie o backend. No Gmail, use uma [senha de app](https://myaccount.google.com/apppasswords), não a senha da conta.
 
 Abra o app por `localhost`, não por `127.0.0.1`: os cookies de sessão dependem disso. Depois é só criar uma conta na tela de cadastro.
 
