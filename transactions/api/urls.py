@@ -1,5 +1,5 @@
 from django.urls import path
-from . import auth_views, fixed_bills_views, views
+from . import auth_views, fixed_bills_views, statement_views, views
 
 urlpatterns = [
     path("auth/csrf/", auth_views.csrf_cookie, name="auth-csrf"),
@@ -39,6 +39,16 @@ urlpatterns = [
         "transactions/<int:pk>/",
         views.transaction_detail_api,
         name="transaction-detail-api"
+    ),
+    path(
+        "statement/",
+        statement_views.statement_api,
+        name="statement-api"
+    ),
+    path(
+        "statement/export/",
+        statement_views.statement_export_api,
+        name="statement-export-api"
     ),
     path(
         "sidebar-summary/",

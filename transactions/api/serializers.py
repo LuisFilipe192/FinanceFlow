@@ -84,6 +84,23 @@ class DashboardPeriodSerializer(serializers.Serializer):
         required=False
     )
 
+class StatementFilterSerializer(serializers.Serializer):
+    start = serializers.DateField()
+    end = serializers.DateField()
+    type = serializers.ChoiceField(
+        choices=Transaction.Type.choices,
+        required=False
+    )
+
+    def validate(self, attrs):
+        if attrs["start"] > attrs["end"]:
+            raise serializers.ValidationError(
+                {"start": "A data inicial precisa vir antes da data final."}
+            )
+
+        return attrs
+
+
 class TransactionSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(
         source="category.name",

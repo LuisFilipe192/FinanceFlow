@@ -19,6 +19,7 @@ from rest_framework.throttling import UserRateThrottle
 from transactions.models import Transaction, Category, FixedBill
 from transactions.services.fixed_bills import get_due_date, get_fixed_bills_for_period
 from transactions.services.installments import add_months
+from transactions.services.statement import safe_cell
 from transactions.services.dashboard import (
     get_financial_summary,
     get_expenses_by_category,
@@ -1543,6 +1544,128 @@ class SidebarSummaryTests(TestCase):
 
     def test_requires_login(self):
         self.assertIn(self.client.get("/api/sidebar-summary/").status_code, (401, 403))
+
+
+class StatementTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="ana", password="senha-forte-123")
+        self.other = User.objects.create_user(username="bruno", password="senha-forte-123")
+        self.category = Category.objects.create(user=self.user, name="Mercado")
+        self.client.force_login(self.user)
+
+        for description, amount, kind, day in [
+            ("Salário", "3000.00", "INCOME", date(2026, 11, 1)),
+            ("Feira", "120.50", "EXPENSE", date(2026, 11, 10)),
+            ("Mês seguinte", "99.00", "EXPENSE", date(2026, 12, 1)),
+        ]:
+            Transaction.objects.create(
+                user=self.user,
+                description=description,
+                amount=amount,
+                type=kind,
+                date=day,
+                category=self.category,
+            )
+
+        Transaction.objects.create(
+            user=self.other, description="De outra pessoa", amount="1.00", type="EXPENSE", date=date(2026, 11, 2)
+        )
+
+    def statement(self, **params):
+        return self.client.get("/api/statement/", {"start": "2026-11-01", "end": "2026-11-30", **params})
+
+    def export(self, **params):
+        return self.client.get("/api/statement/export/", {"start": "2026-11-01", "end": "2026-11-30", **params})
+
+    def csv_lines(self, **params):
+        return self.export(**params).content.decode("utf-8-sig").splitlines()
+
+    def test_lists_only_the_period_of_the_logged_user_oldest_first(self):
+        data = self.statement().json()
+
+        self.assertEqual([item["description"] for item in data["transactions"]], ["Salário", "Feira"])
+        self.assertEqual(Decimal(data["summary"]["income"]), Decimal("3000.00"))
+        self.assertEqual(Decimal(data["summary"]["expenses"]), Decimal("120.50"))
+        self.assertEqual(Decimal(data["summary"]["balance"]), Decimal("2879.50"))
+
+    def test_filters_by_type(self):
+        data = self.statement(type="EXPENSE").json()
+
+        self.assertEqual([item["description"] for item in data["transactions"]], ["Feira"])
+        self.assertEqual(Decimal(data["summary"]["income"]), Decimal("0"))
+
+    def test_period_includes_both_limits(self):
+        data = self.statement(start="2026-11-10", end="2026-12-01").json()
+
+        self.assertEqual([item["description"] for item in data["transactions"]], ["Feira", "Mês seguinte"])
+
+    def test_rejects_invalid_filters(self):
+        for params in [{"start": "2026-12-01"}, {"start": "ontem"}, {"type": "OUTRO"}]:
+            with self.subTest(params=params):
+                self.assertEqual(self.statement(**params).status_code, 400)
+                self.assertEqual(self.export(**params).status_code, 400)
+
+    def test_requires_both_dates(self):
+        self.assertEqual(self.client.get("/api/statement/").status_code, 400)
+
+    def test_requires_login(self):
+        self.client.logout()
+
+        self.assertIn(self.statement().status_code, (401, 403))
+        self.assertIn(self.export().status_code, (401, 403))
+
+    def test_csv_opens_in_brazilian_excel(self):
+        response = self.export()
+
+        self.assertTrue(response.content.startswith(b"\xef\xbb\xbf"))
+        self.assertIn("text/csv", response["Content-Type"])
+        self.assertEqual(
+            response["Content-Disposition"],
+            'attachment; filename="extrato_2026-11-01_2026-11-30.csv"',
+        )
+        self.assertEqual(response["Cache-Control"], "no-store")
+        self.assertEqual(
+            self.csv_lines(),
+            [
+                "Data;Descrição;Categoria;Tipo;Valor;Parcela",
+                "01/11/2026;Salário;Mercado;Receita;3000,00;",
+                "10/11/2026;Feira;Mercado;Despesa;-120,50;",
+            ],
+        )
+
+    def test_csv_shows_the_installment(self):
+        Transaction.objects.create(
+            user=self.user,
+            description="Celular",
+            amount="150.00",
+            type="EXPENSE",
+            date=date(2026, 11, 20),
+            installment_number=2,
+            installment_total=5,
+        )
+
+        self.assertEqual(self.csv_lines()[-1], "20/11/2026;Celular;;Despesa;-150,00;2 de 5")
+
+    def test_csv_keeps_semicolons_inside_a_description(self):
+        Transaction.objects.create(
+            user=self.user, description="Pão; leite", amount="9.00", type="EXPENSE", date=date(2026, 11, 20)
+        )
+
+        self.assertIn('"Pão; leite"', self.csv_lines()[-1])
+
+    def test_formula_like_descriptions_are_neutralized(self):
+        for text in ["=HYPERLINK(1)", "+1", "-1", "@SUM(1)", "\tx", "\rx"]:
+            with self.subTest(text=text):
+                self.assertEqual(safe_cell(text), f"'{text}")
+
+        self.assertEqual(safe_cell("Feira"), "Feira")
+
+    def test_formula_is_neutralized_in_the_exported_file(self):
+        Transaction.objects.create(
+            user=self.user, description="=1+1", amount="9.00", type="EXPENSE", date=date(2026, 11, 20)
+        )
+
+        self.assertIn(";'=1+1;", self.csv_lines()[-1])
 
 
 class BrazilTimezoneTests(TestCase):
