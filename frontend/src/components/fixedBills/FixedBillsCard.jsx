@@ -6,13 +6,14 @@ import PayBillModal from "./PayBillModal";
 import ConfirmDialog from "../ConfirmDialog";
 import { useToast } from "../../context/ToastContext";
 import { deleteFixedBill, getFixedBills } from "../../services/fixedBills";
-import { getBillStatusLabel } from "../../utils/fixedBills";
+import { getBillStatusLabel, getBillUrgency } from "../../utils/fixedBills";
 import { formatCurrency } from "../../utils/format";
 
-const STATUS_ICONS = {
+const URGENCY_ICONS = {
     paid: CircleCheck,
-    pending: CircleDashed,
-    due_today: Clock,
+    calm: CircleDashed,
+    soon: CircleDashed,
+    urgent: Clock,
     overdue: AlertTriangle,
 };
 
@@ -105,10 +106,11 @@ function FixedBillsCard({ period, categories, refreshKey, onCategoryCreated, onP
 
                     <ul className="fixed-bills-list">
                         {data.bills.map((bill) => {
-                            const Icon = STATUS_ICONS[bill.status];
+                            const urgency = getBillUrgency(bill);
+                            const Icon = URGENCY_ICONS[urgency];
 
                             return (
-                                <li className={`fixed-bill ${bill.status}`} key={bill.id}>
+                                <li className={`fixed-bill ${urgency}`} key={bill.id}>
                                     <Icon size={18} className="fixed-bill-icon" />
 
                                     <div className="fixed-bill-info">

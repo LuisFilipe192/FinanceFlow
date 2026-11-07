@@ -39,6 +39,11 @@
     --warning-soft: rgba(229, 181, 103, 0.12);
     --warning-border: rgba(229, 181, 103, 0.35);
 
+    --bill-calm: #f5d547;
+    --bill-soon: #f7b267;
+    --bill-urgent: #f97f2a;
+    --bill-overdue: #f4484d;
+
     --info: #8bb8ff;
     --info-soft: rgba(139, 184, 255, 0.12);
 

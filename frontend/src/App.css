@@ -1889,19 +1889,23 @@
 
 .fixed-bill-icon {
     flex-shrink: 0;
-    color: var(--text-secondary);
+    color: var(--bill-calm);
 }
 
 .fixed-bill.paid .fixed-bill-icon {
     color: var(--accent);
 }
 
-.fixed-bill.due_today .fixed-bill-icon {
-    color: var(--warning);
+.fixed-bill.soon .fixed-bill-icon {
+    color: var(--bill-soon);
+}
+
+.fixed-bill.urgent .fixed-bill-icon {
+    color: var(--bill-urgent);
 }
 
 .fixed-bill.overdue .fixed-bill-icon {
-    color: var(--danger);
+    color: var(--bill-overdue);
 }
 
 .fixed-bill-info {
@@ -1926,12 +1930,12 @@
     font-size: var(--text-xs);
 }
 
-.fixed-bill.due_today .fixed-bill-info span {
-    color: var(--warning);
+.fixed-bill.urgent .fixed-bill-info span {
+    color: var(--bill-urgent);
 }
 
 .fixed-bill.overdue .fixed-bill-info span {
-    color: var(--danger);
+    color: var(--bill-overdue);
 }
 
 .fixed-bill-amount {
