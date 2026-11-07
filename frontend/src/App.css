@@ -1891,25 +1891,29 @@
     border-bottom: none;
 }
 
+.fixed-bill {
+    --bill-tone: var(--bill-calm);
+}
+
+.fixed-bill.paid {
+    --bill-tone: var(--accent);
+}
+
+.fixed-bill.soon {
+    --bill-tone: var(--bill-soon);
+}
+
+.fixed-bill.urgent {
+    --bill-tone: var(--bill-urgent);
+}
+
+.fixed-bill.overdue {
+    --bill-tone: var(--bill-overdue);
+}
+
 .fixed-bill-icon {
     flex-shrink: 0;
-    color: var(--bill-calm);
-}
-
-.fixed-bill.paid .fixed-bill-icon {
-    color: var(--accent);
-}
-
-.fixed-bill.soon .fixed-bill-icon {
-    color: var(--bill-soon);
-}
-
-.fixed-bill.urgent .fixed-bill-icon {
-    color: var(--bill-urgent);
-}
-
-.fixed-bill.overdue .fixed-bill-icon {
-    color: var(--bill-overdue);
+    color: var(--bill-tone);
 }
 
 .fixed-bill-info {
@@ -1958,6 +1962,22 @@
     flex-shrink: 0;
     min-height: 36px;
     padding: 0 14px;
+    border-color: color-mix(in srgb, var(--bill-tone) 45%, transparent);
+    background: color-mix(in srgb, var(--bill-tone) 8%, transparent);
+    color: var(--bill-tone);
+    transition: background 150ms ease, border-color 150ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .fixed-bill-pay.secondary-button:hover {
+        border-color: var(--bill-tone);
+        background: color-mix(in srgb, var(--bill-tone) 16%, transparent);
+        color: var(--bill-tone);
+    }
+}
+
+.fixed-bill.overdue .fixed-bill-pay.secondary-button {
+    color: var(--danger);
 }
 
 @media (max-width: 600px) {
