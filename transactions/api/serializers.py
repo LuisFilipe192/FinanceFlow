@@ -1,5 +1,12 @@
+from django.utils import timezone
 from rest_framework import serializers
 from transactions.models import Transaction, Category, FixedBill
+from transactions.services.installments import (
+    MAX_INSTALLMENTS,
+    MIN_INSTALLMENTS,
+    create_installments,
+    ends_after_supported_year,
+)
 
 class FinancialSummarySerializer(serializers.Serializer):
     income = serializers.DecimalField(
@@ -83,6 +90,18 @@ class TransactionSerializer(serializers.ModelSerializer):
         read_only=True
     )
 
+    installments = serializers.IntegerField(
+        write_only=True,
+        required=False,
+        min_value=MIN_INSTALLMENTS,
+        max_value=MAX_INSTALLMENTS,
+        error_messages={
+            "invalid": "Informe o número de parcelas.",
+            "min_value": f"Use pelo menos {MIN_INSTALLMENTS} parcelas.",
+            "max_value": f"Use no máximo {MAX_INSTALLMENTS} parcelas.",
+        },
+    )
+
     class Meta:
         model = Transaction
         fields = [
@@ -94,8 +113,17 @@ class TransactionSerializer(serializers.ModelSerializer):
             "category",
             "category_name",
             "fixed_bill",
+            "installments",
+            "installment_number",
+            "installment_total",
         ]
-        read_only_fields = ["id", "category_name", "fixed_bill"]
+        read_only_fields = [
+            "id",
+            "category_name",
+            "fixed_bill",
+            "installment_number",
+            "installment_total",
+        ]
 
     # Receita ou despesa é definido por "type"; o valor é sempre positivo.
     # A tela já impede valor zero ou negativo, mas uma requisição direta à
@@ -118,6 +146,44 @@ class TransactionSerializer(serializers.ModelSerializer):
                 )
 
         return category
+
+    def validate(self, attrs):
+        installments = attrs.get("installments")
+
+        if installments is not None:
+            if self.instance is not None:
+                raise serializers.ValidationError(
+                    {"installments": "Não é possível parcelar uma transação já registrada."}
+                )
+
+            if attrs.get("type") != Transaction.Type.EXPENSE:
+                raise serializers.ValidationError(
+                    {"installments": "Só despesas podem ser parceladas."}
+                )
+
+            first_date = attrs.get("date") or timezone.localdate()
+
+            if ends_after_supported_year(first_date, installments):
+                raise serializers.ValidationError(
+                    {"date": "Escolha uma data mais próxima."}
+                )
+
+        is_installment = self.instance is not None and self.instance.installment_group
+
+        if is_installment and attrs.get("type", Transaction.Type.EXPENSE) != Transaction.Type.EXPENSE:
+            raise serializers.ValidationError(
+                {"type": "Uma parcela precisa continuar sendo despesa."}
+            )
+
+        return attrs
+
+    def create(self, validated_data):
+        installments = validated_data.pop("installments", None)
+
+        if installments:
+            return create_installments(installments, **validated_data)
+
+        return super().create(validated_data)
 
 
 

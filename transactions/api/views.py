@@ -373,5 +373,13 @@ def transaction_detail_api(request, pk):
         )
 
     if request.method == "DELETE":
-        transaction.delete()
+        if request.query_params.get("scope") == "following" and transaction.installment_group:
+            Transaction.objects.filter(
+                user=request.user,
+                installment_group=transaction.installment_group,
+                installment_number__gte=transaction.installment_number,
+            ).delete()
+        else:
+            transaction.delete()
+
         return Response(status=status.HTTP_204_NO_CONTENT)

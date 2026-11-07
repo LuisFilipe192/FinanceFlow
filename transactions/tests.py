@@ -17,6 +17,7 @@ from rest_framework.throttling import UserRateThrottle
 
 from transactions.models import Transaction, Category, FixedBill
 from transactions.services.fixed_bills import get_due_date, get_fixed_bills_for_period
+from transactions.services.installments import add_months
 from transactions.services.dashboard import (
     get_financial_summary,
     get_expenses_by_category,
@@ -1340,6 +1341,177 @@ class FixedBillTests(TestCase):
 
         self.assertEqual(response.status_code, 204)
         self.assertFalse(FixedBill.objects.filter(user_id=self.user.id).exists())
+
+
+class InstallmentTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="ana", password="senha-forte-123")
+        self.other = User.objects.create_user(username="bruno", password="senha-forte-123")
+        self.category = Category.objects.create(user=self.user, name="Celular", monthly_budget="500.00")
+        self.client.force_login(self.user)
+
+    def buy(self, **changes):
+        return self.client.post(
+            "/api/transactions/",
+            {
+                "description": "Celular",
+                "amount": "150.00",
+                "type": "EXPENSE",
+                "date": "2026-11-06",
+                "category": self.category.id,
+                "installments": 3,
+                **changes,
+            },
+            content_type="application/json",
+        )
+
+    def purchase(self):
+        return Transaction.objects.filter(user=self.user).order_by("installment_number")
+
+    def test_creates_one_expense_per_month(self):
+        response = self.buy()
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["installment_number"], 1)
+        self.assertEqual(response.json()["installment_total"], 3)
+        self.assertEqual(response.json()["id"], self.purchase().first().id)
+        self.assertNotIn("installments", response.json())
+        self.assertEqual(
+            [item.date for item in self.purchase()],
+            [date(2026, 11, 6), date(2026, 12, 6), date(2027, 1, 6)],
+        )
+        self.assertEqual([item.installment_number for item in self.purchase()], [1, 2, 3])
+        self.assertEqual({item.amount for item in self.purchase()}, {Decimal("150.00")})
+        self.assertEqual(len({item.installment_group for item in self.purchase()}), 1)
+
+    def test_each_month_only_counts_its_own_installment(self):
+        self.buy()
+
+        november = get_financial_summary(self.user, 11, 2026)
+        january = get_financial_summary(self.user, 1, 2027)
+
+        self.assertEqual(november["expenses"], Decimal("150.00"))
+        self.assertEqual(january["expenses"], Decimal("150.00"))
+
+    def test_day_is_kept_after_a_shorter_month(self):
+        self.assertEqual(add_months(date(2026, 1, 31), 1), date(2026, 2, 28))
+        self.assertEqual(add_months(date(2026, 1, 31), 2), date(2026, 3, 31))
+        self.assertEqual(add_months(date(2026, 12, 15), 1), date(2027, 1, 15))
+
+    def test_regular_expense_has_no_installment_data(self):
+        response = self.client.post(
+            "/api/transactions/",
+            {"description": "Almoço", "amount": "30.00", "type": "EXPENSE", "date": "2026-11-06"},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertIsNone(response.json()["installment_total"])
+        self.assertEqual(Transaction.objects.count(), 1)
+
+    def test_rejects_invalid_installments_without_saving(self):
+        for value in [1, 61, "abc"]:
+            with self.subTest(value=value):
+                response = self.buy(installments=value)
+
+                self.assertEqual(response.status_code, 400)
+                self.assertIn("installments", response.json())
+
+        self.assertEqual(Transaction.objects.count(), 0)
+
+    def test_income_cannot_be_split(self):
+        response = self.buy(type="INCOME")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Transaction.objects.count(), 0)
+
+    def test_rejects_purchase_ending_after_supported_period(self):
+        response = self.buy(date="2100-12-01")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("date", response.json())
+        self.assertEqual(Transaction.objects.count(), 0)
+
+    def test_editing_changes_only_that_installment(self):
+        self.buy()
+        second = self.purchase()[1]
+
+        response = self.client.patch(
+            f"/api/transactions/{second.id}/",
+            {"amount": "99.00"},
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [item.amount for item in self.purchase()],
+            [Decimal("150.00"), Decimal("99.00"), Decimal("150.00")],
+        )
+
+    def test_existing_transaction_cannot_become_installments_or_income(self):
+        self.buy()
+        first = self.purchase().first()
+
+        for changes, field in [({"installments": 4}, "installments"), ({"type": "INCOME"}, "type")]:
+            with self.subTest(field=field):
+                response = self.client.patch(
+                    f"/api/transactions/{first.id}/",
+                    changes,
+                    content_type="application/json",
+                )
+
+                self.assertEqual(response.status_code, 400)
+                self.assertIn(field, response.json())
+
+        self.assertEqual(self.purchase().count(), 3)
+
+    def test_delete_removes_only_that_installment_by_default(self):
+        self.buy()
+        second = self.purchase()[1]
+
+        response = self.client.delete(f"/api/transactions/{second.id}/")
+
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual([item.installment_number for item in self.purchase()], [1, 3])
+
+    def test_delete_following_keeps_earlier_installments(self):
+        self.buy()
+        second = self.purchase()[1]
+
+        response = self.client.delete(f"/api/transactions/{second.id}/?scope=following")
+
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual([item.installment_number for item in self.purchase()], [1])
+
+    def test_delete_following_does_not_touch_other_purchases(self):
+        self.buy()
+        self.buy(description="Notebook")
+        first = self.purchase().filter(description="Celular").first()
+
+        self.client.delete(f"/api/transactions/{first.id}/?scope=following")
+
+        self.assertEqual(self.purchase().filter(description="Notebook").count(), 3)
+        self.assertEqual(self.purchase().filter(description="Celular").count(), 0)
+
+    def test_delete_following_on_regular_transaction_removes_only_it(self):
+        regular = Transaction.objects.create(
+            user=self.user, description="Almoço", amount="30.00", type="EXPENSE", date=date(2026, 11, 6)
+        )
+        self.buy()
+
+        self.client.delete(f"/api/transactions/{regular.id}/?scope=following")
+
+        self.assertEqual(Transaction.objects.filter(user=self.user).count(), 3)
+
+    def test_other_users_cannot_delete_installments(self):
+        self.buy()
+        first = self.purchase().first()
+        self.client.force_login(self.other)
+
+        response = self.client.delete(f"/api/transactions/{first.id}/?scope=following")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(Transaction.objects.filter(user=self.user).count(), 3)
 
 
 class BrazilTimezoneTests(TestCase):

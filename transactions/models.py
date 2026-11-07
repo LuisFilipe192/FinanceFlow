@@ -42,6 +42,12 @@ class Transaction(models.Model):
         blank=True
     )
 
+    installment_group = models.UUIDField(null=True, blank=True, db_index=True)
+
+    installment_number = models.PositiveSmallIntegerField(null=True, blank=True)
+
+    installment_total = models.PositiveSmallIntegerField(null=True, blank=True)
+
     def __str__(self):
         return self.description
 
