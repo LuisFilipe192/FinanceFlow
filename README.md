@@ -12,6 +12,7 @@ Controle financeiro pessoal multiusuário, feito com Django REST Framework e Rea
 - **Transações por mês:** busca, filtro por tipo e exclusão com "Desfazer" por 5 segundos.
 - **Orçamento por categoria:** limite mensal opcional, com avisos a partir de 80% e ao passar de 100%.
 - **Compras parceladas:** a despesa pode ser à vista ou parcelada, com uma parcela registrada em cada mês. Dá para excluir só uma ou esta e as próximas.
+- **Extrato:** filtro por período e tipo, com exportação em CSV para o Excel e impressão ou PDF pelo navegador. O CSV neutraliza descrições que seriam interpretadas como fórmula.
 - **Contas fixas:** aluguel, internet e outros pagamentos mensais, com vencimento opcional. Nada é lançado sozinho: você confirma cada pagamento e pode ajustar o valor.
 - **Conta do usuário:** login por nome de usuário ou e-mail, edição de perfil, troca de senha, recuperação de senha por e-mail e exclusão da conta com todos os dados.
 - **Celular:** navegação inferior e layout próprio para telas pequenas.

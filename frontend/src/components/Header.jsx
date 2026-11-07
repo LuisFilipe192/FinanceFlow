@@ -15,6 +15,10 @@ const PAGE_INFO = {
         title: "Categorias",
         description: "Organize e acompanhe seus gastos.",
     },
+    "/statement": {
+        title: "Extrato",
+        description: "Confira um período e exporte suas transações.",
+    },
     "/settings": {
         title: "Configurações",
         description: "Gerencie sua conta e seus dados.",

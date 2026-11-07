@@ -3258,3 +3258,236 @@
         display: none;
     }
 }
+
+/* EXTRATO */
+
+.statement-page {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.statement-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.statement-filters .segmented-control {
+    align-self: flex-start;
+    background: var(--bg-secondary);
+}
+
+.statement-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 14px;
+}
+
+.statement-filter-row .segmented-control {
+    align-self: flex-end;
+    margin-left: auto;
+}
+
+.statement-date {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 170px;
+}
+
+.statement-date label {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    font-weight: 500;
+}
+
+.statement-date input {
+    width: 100%;
+    padding: 11px 14px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: var(--text-base);
+}
+
+.statement-print-title {
+    display: none;
+}
+
+.statement-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin: 0 0 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.statement-summary dt {
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+}
+
+.statement-summary dd {
+    margin: 4px 0 0;
+    color: var(--text-primary);
+    font-family: var(--font-heading);
+    font-size: var(--text-lg);
+    font-weight: 700;
+}
+
+.statement-summary dd.income,
+.statement-table td.income {
+    color: var(--accent);
+}
+
+.statement-summary dd.expense,
+.statement-table td.expense {
+    color: var(--danger);
+}
+
+.statement-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+}
+
+.statement-table th {
+    padding: 0 10px 10px;
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-align: left;
+}
+
+.statement-table td {
+    padding: 11px 10px;
+    color: var(--text-secondary);
+    border-top: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.statement-table th:first-child,
+.statement-table td:first-child {
+    width: 110px;
+    padding-left: 0;
+}
+
+.statement-table th:last-child,
+.statement-table td:last-child {
+    padding-right: 0;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.statement-table td:last-child {
+    font-weight: 600;
+}
+
+.statement-table td strong {
+    display: block;
+    color: var(--text-primary);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.statement-table td small {
+    color: var(--text-secondary);
+    font-size: var(--text-xs);
+}
+
+@media (max-width: 700px) {
+    .statement-filters .segmented-control {
+        align-self: stretch;
+        flex-wrap: wrap;
+    }
+
+    .statement-filter-row .segmented-control {
+        flex-basis: 100%;
+        margin-left: 0;
+    }
+
+    .statement-date {
+        flex: 1;
+        width: auto;
+        min-width: 0;
+    }
+
+    .statement-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .statement-table th:first-child,
+    .statement-table td:first-child {
+        width: 84px;
+    }
+}
+
+@media print {
+    :root:root {
+        --bg-primary: #ffffff;
+        --bg-secondary: #ffffff;
+        --bg-card: #ffffff;
+        --text-primary: #111111;
+        --text-secondary: #444444;
+        --border: #cccccc;
+        --accent: #1a7f37;
+        --danger: #b42318;
+    }
+
+    body {
+        background: #ffffff;
+    }
+
+    .sidebar,
+    .header,
+    .statement-filters {
+        display: none;
+    }
+
+    .main-content {
+        margin: 0;
+        padding: 0;
+    }
+
+    .statement-card {
+        padding: 0;
+        border: none;
+    }
+
+    .statement-print-title {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        color: var(--text-primary);
+        font-size: var(--text-md);
+    }
+
+    .statement-table tr {
+        break-inside: avoid;
+    }
+}
+
+@media (max-width: 700px) {
+    .statement-filters > .segmented-control {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .statement-filters .segmented-control button {
+        white-space: nowrap;
+    }
+
+    .sidebar-nav {
+        gap: 0;
+    }
+
+    .nav-item {
+        padding-right: 0;
+        padding-left: 0;
+        font-size: 10px;
+    }
+}

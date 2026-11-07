@@ -3,6 +3,7 @@ import {
     LayoutDashboard,
     ArrowLeftRight,
     Tags,
+    FileText,
     Settings,
 } from "lucide-react";
 
@@ -50,6 +51,16 @@ function Sidebar() {
                 >
                     <Tags size={18} />
                     <span>Categorias</span>
+                </NavLink>
+
+                <NavLink
+                    to="/statement"
+                    className={({ isActive }) =>
+                        `nav-item ${isActive ? "active" : ""}`
+                    }
+                >
+                    <FileText size={18} />
+                    <span>Extrato</span>
                 </NavLink>
 
                 <NavLink

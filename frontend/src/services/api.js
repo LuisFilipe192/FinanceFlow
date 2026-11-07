@@ -51,6 +51,7 @@ export async function apiRequest(path, {
     keepalive = false,
     fallbackError = "Não foi possível completar a operação.",
     useServerMessage = false,
+    asBlob = false,
 } = {}) {
     const headers = { Accept: "application/json" };
 
@@ -86,6 +87,10 @@ export async function apiRequest(path, {
     }
 
     // 204 (exclusões) não tem corpo; outras respostas podem não ser JSON.
+    if (asBlob && response.ok) {
+        return response.blob();
+    }
+
     const data = response.status === 204
         ? null
         : await response.json().catch(() => null);
