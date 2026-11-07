@@ -3086,3 +3086,15 @@
 .installment-delete-actions {
     flex-wrap: wrap;
 }
+
+.transaction-row .transaction-meta span + span::before {
+    content: "-";
+    margin-right: 10px;
+    color: var(--text-secondary);
+}
+
+@media (max-width: 600px) {
+    .transaction-row .transaction-meta span + span::before {
+        margin-right: 5px;
+    }
+}
